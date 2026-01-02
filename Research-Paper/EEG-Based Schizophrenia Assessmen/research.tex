@@ -59,7 +59,7 @@
 % ABSTRACT
 % ============================================================================
 \begin{abstract}
-Schizophrenia diagnosis remains predominantly subjective, relying on clinical interviews and behavioral observation, while machine learning approaches using electroencephalography (EEG) have shown promise for objective biomarker discovery. However, many published studies suffer from methodological flaws---particularly ``subject leakage,'' where recordings from the same individual contaminate both training and testing sets, artificially inflating reported accuracies. This work presents a rigorously validated EEG classification pipeline that prioritizes methodological integrity over inflated performance metrics. Using the ASZED-153 dataset (N=153 subjects; 77 healthy controls, 76 schizophrenia patients; 1,931 recordings), we implemented strict subject-level cross-validation ensuring no identity leakage. Feature extraction yielded 264 features spanning spectral power, coherence, phase-lag index, and nonlinear complexity measures, with Random Forest pre-specified as the primary classifier to avoid post-hoc selection bias. Subject-level classification achieved 83.7\% accuracy (95\% CI: 77.8--89.5\%) with ROC-AUC of 0.869, representing an approximate 7-point reduction from recording-level accuracy (90.9\%)---quantifying the inflation caused by identity leakage in naive evaluation schemes. \textbf{All classification results were obtained from research-grade EEG equipment; the ESP32-based hardware prototype presented here serves as a proof-of-concept for future validation studies.} Feature importance analysis revealed frontal channels (Fp1, Fp2) as top predictors, providing biological rationale for targeting frontal sites in future low-cost hardware designs. By transparently reporting honest metrics obtained through rigorous methodology, this work establishes a reproducible baseline for EEG-based schizophrenia screening and offers a pathway toward accessible psychiatric assessment tools for underserved populations. % REVISION: Reframed hardware as proof-of-concept, clarified classification used research-grade EEG
+Schizophrenia diagnosis remains predominantly subjective, relying on clinical interviews and behavioral observation, while machine learning approaches using electroencephalography (EEG) have shown promise for objective biomarker discovery. Many published studies suffer from methodological flaws, particularly ``subject leakage,'' where recordings from the same individual contaminate both training and testing sets and artificially inflate reported accuracies. This work presents a rigorously validated EEG classification pipeline that prioritizes methodological integrity over inflated performance metrics. Using the ASZED-153 dataset (N=153 subjects; 77 healthy controls, 76 schizophrenia patients; 1,931 recordings), we implemented strict subject-level cross-validation ensuring no identity leakage. Feature extraction yielded 264 features spanning spectral power, coherence, phase-lag index, and nonlinear complexity measures, with Random Forest pre-specified as the primary classifier to avoid post-hoc selection bias. Subject-level classification achieved 83.7\% accuracy (95\% CI: 77.8--89.5\%) with ROC-AUC of 0.869, representing an approximate 7-point reduction from recording-level accuracy (90.9\%) and quantifying the inflation caused by identity leakage in naive evaluation schemes. All classification results were obtained from research-grade EEG equipment; the ESP32-based hardware prototype presented here serves as a proof-of-concept for future validation studies. Feature importance analysis revealed frontal channels (Fp1, Fp2) as top predictors, providing biological rationale for targeting frontal sites in future low-cost hardware designs. By transparently reporting honest metrics obtained through rigorous methodology, this work establishes a reproducible baseline for EEG-based schizophrenia screening and offers a pathway toward accessible psychiatric assessment tools for underserved populations. % REVISION: Reframed hardware as proof-of-concept, clarified classification used research-grade EEG
 \end{abstract}
 
 % ============================================================================
@@ -71,23 +71,23 @@ Schizophrenia affects approximately 1\% of the global population, with diagnosis
 
 The application of machine learning (ML) to electroencephalography (EEG) has emerged as a promising avenue for developing objective, quantitative markers of schizophrenia \cite{murphy2021, phang2020}. EEG offers several practical advantages: it is non-invasive, relatively inexpensive, and captures the neural oscillatory dynamics known to be disrupted in psychotic disorders \cite{uhlhaas2010}. Published studies have reported classification accuracies exceeding 90\%, suggesting that EEG-based diagnostic tools may soon augment clinical practice.
 
-However, the ML-for-health literature faces a well-documented replication crisis \cite{roberts2021, varoquaux2022}. A substantial proportion of studies suffer from methodological flaws that artificially inflate reported performance. Chief among these is \textit{identity leakage}---the contamination of test sets with recordings from subjects present in the training set. When multiple recordings per subject exist (as is common in EEG datasets), naive random splitting allows the model to exploit subject-specific patterns (voice, electrode impedance, head shape) rather than learning disorder-relevant biomarkers. The resulting accuracy estimates are overly optimistic and fail to generalize to new individuals \cite{little2017, saeb2017}.
+The ML-for-health literature, however, faces a well-documented replication crisis \cite{roberts2021, varoquaux2022}. A substantial proportion of studies suffer from methodological flaws that artificially inflate reported performance. Most problematic is \textit{identity leakage}, the contamination of test sets with recordings from subjects present in the training set. When multiple recordings per subject exist (as is common in EEG datasets), naive random splitting allows the model to exploit subject-specific patterns (voice, electrode impedance, head shape) rather than learning disorder-relevant biomarkers. The resulting accuracy estimates are overly optimistic and fail to generalize to new individuals \cite{little2017, saeb2017}.
 
 \subsection{Contributions of This Work}
 
 This paper makes four primary contributions:
 
 \begin{enumerate}[leftmargin=*,nosep]
-    \item \textbf{Rigorous Evaluation Protocol:} We implement strict subject-level stratified cross-validation, ensuring that all recordings from a given individual remain entirely within either the training or testing fold---never split between them. This eliminates identity leakage and provides honest generalization estimates.
+    \item \textbf{Rigorous Evaluation Protocol:} We implement strict subject-level stratified cross-validation, ensuring that all recordings from a given individual remain entirely within either the training or testing fold, never split between them. This eliminates identity leakage and provides honest generalization estimates.
 
     \item \textbf{Transparent Quantification of Methodological Impact:} We explicitly compare recording-level accuracy (the inflated metric) with subject-level accuracy (the honest metric), quantifying the ``cost of rigor'' at approximately 7 percentage points.
 
     \item \textbf{Pre-Specified Analysis Plan:} The primary classifier (Random Forest) was designated before evaluation to prevent post-hoc model selection bias, adhering to principles of registered reporting.
 
-    \item \textbf{Hardware Feasibility Demonstration:} We developed a low-cost (\$50) single-channel EEG proof-of-concept prototype based on the ESP32 microcontroller and BioAmp EXG Pill. Feature importance analysis from research-grade data suggests that frontal channels carry sufficient discriminative information, providing biological rationale for this design; however, validation with hardware-acquired signals remains future work. % REVISION: Clarified hardware is proof-of-concept, not validated
+    \item \textbf{Hardware Feasibility Demonstration:} We developed a low-cost (\$50) single-channel EEG proof-of-concept prototype based on the ESP32 microcontroller and BioAmp EXG Pill. Feature importance analysis from research-grade data suggests that frontal channels carry sufficient discriminative information, providing biological rationale for this design. Validation with hardware-acquired signals remains future work. % REVISION: Clarified hardware is proof-of-concept, not validated
 \end{enumerate}
 
-We emphasize that this work prioritizes \textit{methodological integrity} over state-of-the-art accuracy claims. The resulting 83.7\% subject-level accuracy, while modest compared to inflated literature benchmarks, represents an honest, reproducible baseline upon which future work can build. All classification results reported herein were obtained from research-grade EEG equipment; the hardware prototype serves as a proof-of-concept for future accessibility-focused validation studies. % REVISION: Added explicit statement about research-grade EEG
+This work prioritizes \textit{methodological integrity} over state-of-the-art accuracy claims. The resulting 83.7\% subject-level accuracy, while modest compared to inflated literature benchmarks, represents an honest, reproducible baseline upon which future work can build. All classification results reported here were obtained from research-grade EEG equipment; the hardware prototype serves as a proof-of-concept for future accessibility-focused validation studies. % REVISION: Added explicit statement about research-grade EEG
 
 % ============================================================================
 % 2. MATERIALS AND METHODS
@@ -98,7 +98,7 @@ We emphasize that this work prioritizes \textit{methodological integrity} over s
 
 We utilized the African Schizophrenia EEG Dataset (ASZED), version 1.1, publicly available through Zenodo (DOI: 10.5281/zenodo.14178398) \cite{aszed2024}. This dataset comprises EEG recordings from 153 participants: 77 healthy controls (HC) and 76 patients with schizophrenia (SZ), recruited from two clinical sites in Nigeria. Demographic characteristics are summarized in Table~\ref{tab:demographics}.
 
-Recordings were acquired using a 16-channel montage following the international 10--20 system (Fp1, Fp2, F3, F4, C3, C4, P3, P4, O1, O2, F7, F8, T3, T4, T5, T6) at 256 Hz sampling rate. Multiple paradigms were recorded per subject, including resting-state (eyes open/closed), cognitive tasks, mismatch negativity (MMN), and auditory steady-state response (ASSR), yielding a total of 1,931 usable recordings (mean: 12.6 recordings per subject).
+Recordings were acquired using a 16-channel montage following the international 10-20 system (Fp1, Fp2, F3, F4, C3, C4, P3, P4, O1, O2, F7, F8, T3, T4, T5, T6) at 256 Hz sampling rate. Multiple paradigms were recorded per subject, including resting-state (eyes open/closed), cognitive tasks, mismatch negativity (MMN), and auditory steady-state response (ASSR), yielding a total of 1,931 usable recordings (mean: 12.6 recordings per subject).
 
 \begin{table}[t]
 \centering
@@ -113,7 +113,7 @@ N (recordings) & 990 & 941 \\
 Recordings/subject & 12.9 & 12.4 \\
 Recording sites & \multicolumn{2}{c}{2 (Nigeria)} \\
 Sampling rate & \multicolumn{2}{c}{256 Hz} \\
-Channels & \multicolumn{2}{c}{16 (10--20 system)} \\
+Channels & \multicolumn{2}{c}{16 (10-20 system)} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -123,9 +123,9 @@ Channels & \multicolumn{2}{c}{16 (10--20 system)} \\
 All preprocessing was implemented in Python 3.10 using MNE-Python \cite{gramfort2013}. The pipeline comprised:
 
 \begin{enumerate}[leftmargin=*,nosep]
-    \item \textbf{Channel Standardization:} Raw channel names (e.g., ``Fp1[1]'') were canonicalized to standard 10--20 nomenclature. Missing channels were zero-padded in-place to maintain consistent feature indexing.
+    \item \textbf{Channel Standardization:} Raw channel names (e.g., ``Fp1[1]'') were canonicalized to standard 10-20 nomenclature. Missing channels were zero-padded in-place to maintain consistent feature indexing.
 
-    \item \textbf{Filtering:} Fourth-order Butterworth bandpass filter (0.5--45 Hz) followed by a 50 Hz notch filter (Nigeria power grid frequency).
+    \item \textbf{Filtering:} Fourth-order Butterworth bandpass filter (0.5-45 Hz) followed by a 50 Hz notch filter (Nigeria power grid frequency).
 
     \item \textbf{Quality Control:} Files with fewer than 10 matched channels or fewer than 500 samples were rejected. Rejection rates were monitored for selection bias using Fisher's exact test.
 
@@ -139,13 +139,13 @@ Quality control analysis confirmed no differential rejection between diagnostic 
 We extracted 264 features per recording, organized into six categories:
 
 \begin{enumerate}[leftmargin=*,nosep]
-    \item \textbf{Spectral Power (80 features):} Band power computed via Welch's method for delta (0.5--4 Hz), theta (4--8 Hz), alpha (8--13 Hz), beta (13--30 Hz), and gamma (30--45 Hz) across all 16 channels.
+    \item \textbf{Spectral Power (80 features):} Band power computed via Welch's method for delta (0.5-4 Hz), theta (4-8 Hz), alpha (8-13 Hz), beta (13-30 Hz), and gamma (30-45 Hz) across all 16 channels.
 
-    \item \textbf{ERP-like Components (20 features):} ERP-like temporal dynamics computed on the Global Field Power (GFP; spatial RMS across all 16 channels) in windows corresponding to N100 (80--120ms), P200 (150--250ms), MMN (150--200ms), and P300 (250--400ms) latencies. Features include peak amplitude, peak latency, window mean, standard deviation, and area under curve. % REVISION: Clarified GFP-based computation and added latency windows
+    \item \textbf{ERP-like Components (20 features):} ERP-like temporal dynamics computed on the Global Field Power (GFP; spatial RMS across all 16 channels) in windows corresponding to N100 (80-120ms), P200 (150-250ms), MMN (150-200ms), and P300 (250-400ms) latencies. Features include peak amplitude, peak latency, window mean, standard deviation, and area under curve. % REVISION: Clarified GFP-based computation and added latency windows
 
-    \item \textbf{Inter-channel Coherence (30 features):} Magnitude-squared coherence between six electrode pairs across five frequency bands. Pairs were chosen to capture: anterior-posterior connectivity (Fp1-O1, Fp2-O2), interhemispheric frontal and occipital connectivity (Fp1-Fp2, O1-O2), and motor-temporal connectivity (C3-T3, C4-T4)---regions implicated in schizophrenia-related dysconnectivity. % REVISION: Added electrode pair rationale
+    \item \textbf{Inter-channel Coherence (30 features):} Magnitude-squared coherence between six electrode pairs across five frequency bands. Pairs were chosen to capture anterior-posterior connectivity (Fp1-O1, Fp2-O2), interhemispheric frontal and occipital connectivity (Fp1-Fp2, O1-O2), and motor-temporal connectivity (C3-T3, C4-T4), regions implicated in schizophrenia-related dysconnectivity. % REVISION: Added electrode pair rationale
 
-    \item \textbf{Phase-Lag Index (6 features):} PLI computed for the same six electrode pairs in the alpha band (8--13 Hz), chosen because alpha-band synchronization abnormalities are well-documented in schizophrenia. PLI quantifies phase synchronization while minimizing volume conduction artifacts \cite{stam2007}. % REVISION: Added frequency band specification (alpha)
+    \item \textbf{Phase-Lag Index (6 features):} PLI computed for the same six electrode pairs in the alpha band (8-13 Hz), chosen because alpha-band synchronization abnormalities are well-documented in schizophrenia. PLI quantifies phase synchronization while minimizing volume conduction artifacts \cite{stam2007}. % REVISION: Added frequency band specification (alpha)
 
     \item \textbf{Statistical Moments (96 features):} Mean, standard deviation, skewness, kurtosis, RMS, and peak-to-peak amplitude for each channel.
 
@@ -153,7 +153,7 @@ We extracted 264 features per recording, organized into six categories:
 \end{enumerate}
 
 % REVISION: Added feature dimensionality justification paragraph
-\paragraph{Justification for Feature Dimensionality.} The 264-dimensional feature space with 153 subjects ($p > n$) warrants methodological justification. Random Forest classifiers are well-suited to high-dimensional settings for several reasons: (1) bagging introduces implicit regularization by training each tree on a bootstrap sample, (2) random feature subsampling at each split prevents any single feature from dominating, and (3) the \texttt{max\_depth=20} constraint limits tree complexity, reducing overfitting risk. Importantly, we deliberately avoided explicit feature selection (e.g., mutual information filtering, recursive feature elimination) prior to cross-validation, as such selection applied to the full dataset would introduce selection bias and inflate performance estimates. The subject-level cross-validation ensures that any feature importance patterns learned reflect generalizable signal rather than training-set-specific noise.
+\paragraph{Justification for Feature Dimensionality.} The 264-dimensional feature space with 153 subjects ($p > n$) requires methodological justification. Random Forest classifiers are well-suited to high-dimensional settings for several reasons: (1) bagging introduces implicit regularization by training each tree on a bootstrap sample, (2) random feature subsampling at each split prevents any single feature from dominating, and (3) the \texttt{max\_depth=20} constraint limits tree complexity, reducing overfitting risk. We deliberately avoided explicit feature selection (e.g., mutual information filtering, recursive feature elimination) prior to cross-validation, as such selection applied to the full dataset would introduce selection bias and inflate performance estimates. The subject-level cross-validation ensures that any feature importance patterns learned reflect generalizable signal rather than training-set-specific noise.
 
 \subsection{Strict Subject-Level Cross-Validation}
 \label{sec:cv}
@@ -173,7 +173,7 @@ To prevent identity leakage, we implemented a strict subject-level evaluation pr
 This protocol ensures that reported metrics reflect true generalization to \textit{new individuals}, not memorization of subject-specific artifacts.
 
 % REVISION: Added threshold and CV fold justification
-\paragraph{Methodological Design Choices.} Two design decisions warrant justification: (1) \textit{Decision threshold}---the 0.5 probability threshold was used as the scikit-learn default; threshold optimization was deliberately avoided to prevent overfitting to the validation data. In deployment, threshold adjustment based on clinical priorities (e.g., maximizing sensitivity) would be appropriate but should be performed on held-out data. (2) \textit{Number of folds}---five-fold CV was pre-specified to balance training set size ($\sim$122 subjects, sufficient for Random Forest training) with number of independent test evaluations. Fewer folds would reduce test variance but limit training data; more folds would increase computational cost with diminishing returns.
+\paragraph{Methodological Design Choices.} Two design decisions require justification: (1) \textit{Decision threshold}: the 0.5 probability threshold was used as the scikit-learn default; threshold optimization was deliberately avoided to prevent overfitting to the validation data. In deployment, threshold adjustment based on clinical priorities (e.g., maximizing sensitivity) would be appropriate but should be performed on held-out data. (2) \textit{Number of folds}: five-fold CV was pre-specified to balance training set size ($\sim$122 subjects, sufficient for Random Forest training) with number of independent test evaluations. Fewer folds would reduce test variance but limit training data; more folds would increase computational cost with diminishing returns.
 
 \subsection{Classification Models}
 
@@ -199,7 +199,7 @@ To demonstrate \textit{design feasibility} for low-resource settings, we develop
     \item \textbf{Sampling:} 256 Hz, 12-bit ADC resolution
 \end{itemize}
 
-Total hardware cost was approximately \$50 USD, compared to \$5,000--50,000 for clinical-grade EEG systems. \textbf{Important:} This prototype represents a proof-of-concept design motivated by feature importance analysis. All classification results reported in this paper were obtained from research-grade 16-channel EEG equipment; validation of classification performance using hardware-acquired signals remains an essential direction for future work. % REVISION: Added explicit disclaimer about hardware validation status
+Total hardware cost was approximately \$50 USD, compared to \$5,000-50,000 for clinical-grade EEG systems. This prototype represents a proof-of-concept design motivated by feature importance analysis. All classification results reported in this paper were obtained from research-grade 16-channel EEG equipment; validation of classification performance using hardware-acquired signals remains an essential direction for future work. % REVISION: Added explicit disclaimer about hardware validation status
 
 % ============================================================================
 % 3. RESULTS
@@ -267,7 +267,7 @@ The model demonstrated high sensitivity (93.4\%) for detecting schizophrenia cas
     \item \textbf{Negative Predictive Value (NPV):} $\frac{0.74 \times 0.99}{0.74 \times 0.99 + 0.066 \times 0.01} = 99.9\%$
 \end{itemize}
 
-The 3.5\% PPV at general population prevalence is notably low, meaning approximately 97\% of positive screens would be false positives. This underscores that EEG-based screening is not suitable for general population deployment. However, the 99.9\% NPV suggests excellent rule-out capability: a negative screen provides strong reassurance. Clinical utility improves substantially in enriched settings: at 10\% prevalence (e.g., first-degree relatives of patients, or individuals presenting with prodromal symptoms), PPV rises to 28.5\%, and at 30\% prevalence (e.g., psychiatric outpatient clinics), PPV reaches 57.2\%. These calculations demonstrate that the tool is most appropriate as a screening aid in high-risk populations or as a triage mechanism to prioritize clinical evaluation, not as a standalone diagnostic.
+The 3.5\% PPV at general population prevalence is notably low, meaning approximately 97\% of positive screens would be false positives. This underscores that EEG-based screening is not suitable for general population deployment. The 99.9\% NPV, though, suggests excellent rule-out capability: a negative screen provides strong reassurance. Clinical utility improves substantially in enriched settings: at 10\% prevalence (e.g., first-degree relatives of patients, or individuals presenting with prodromal symptoms), PPV rises to 28.5\%, and at 30\% prevalence (e.g., psychiatric outpatient clinics), PPV reaches 57.2\%. These calculations demonstrate that the tool is most appropriate as a screening aid in high-risk populations or as a triage mechanism to prioritize clinical evaluation, not as a standalone diagnostic.
 
 \subsection{Quantifying Identity Leakage}
 
@@ -312,7 +312,7 @@ Per-fold subject-level accuracy ranged from 74.2\% to 90.0\% across the five fol
 \end{table}
 
 % REVISION: Added cross-validation variance discussion paragraph
-\paragraph{Interpreting Cross-Fold Variance.} The 16-point accuracy swing across folds (74.2\%--90.0\%) warrants explanation. Three factors contribute to this variance: (1) \textit{Small test set sizes}---each fold contains only 15--16 subjects, where a single misclassification changes accuracy by $\sim$6 percentage points; (2) \textit{Paradigm heterogeneity}---recordings within each subject span multiple EEG paradigms (resting-state, cognitive tasks, MMN, ASSR), and the distribution of paradigms may differ across subjects assigned to different folds; (3) \textit{Expected statistical variance}---with only 30--31 test subjects per fold, binomial sampling variance yields an expected standard deviation of $\sim$7 percentage points at 85\% accuracy. This variance does not indicate model instability but rather reflects the fundamental uncertainty inherent in small-sample clinical classification tasks.
+\paragraph{Interpreting Cross-Fold Variance.} The 16-point accuracy swing across folds (74.2\%-90.0\%) requires explanation. Three factors contribute to this variance: (1) \textit{Small test set sizes}: each fold contains only 15-16 subjects, where a single misclassification changes accuracy by $\sim$6 percentage points; (2) \textit{Paradigm heterogeneity}: recordings within each subject span multiple EEG paradigms (resting-state, cognitive tasks, MMN, ASSR), and the distribution of paradigms may differ across subjects assigned to different folds; (3) \textit{Expected statistical variance}: with only 30-31 test subjects per fold, binomial sampling variance yields an expected standard deviation of $\sim$7 percentage points at 85\% accuracy. This variance does not indicate model instability but rather reflects the fundamental uncertainty inherent in small-sample clinical classification tasks.
 
 \subsection{Feature Importance Analysis} % REVISION: Removed "Hardware Validation" from title since hardware not validated
 
@@ -335,14 +335,14 @@ The prominence of Fp1 and Fp2 channels provides biological rationale for our pro
 
 \subsection{Quantifying the Cost of Methodological Rigor}
 
-The central finding of this work is not the 83.7\% accuracy itself, but rather the \textit{7.2 percentage point gap} between recording-level and subject-level evaluation. This gap quantifies the inflation introduced by identity leakage---a pervasive but often unreported methodological flaw in the EEG-ML literature.
+The central finding of this work is not the 83.7\% accuracy itself, but rather the \textit{7.2 percentage point gap} between recording-level and subject-level evaluation. This gap quantifies the inflation introduced by identity leakage, a pervasive but often unreported methodological flaw in the EEG-ML literature.
 
-When multiple recordings exist per subject, models can exploit subject-specific artifacts (electrode impedance patterns, head geometry, environmental noise signatures) rather than learning disorder-relevant biomarkers. The resulting accuracy estimates, while numerically impressive, fail to generalize to new individuals---the actual clinical use case.
+When multiple recordings exist per subject, models can exploit subject-specific artifacts (electrode impedance patterns, head geometry, environmental noise signatures) rather than learning disorder-relevant biomarkers. The resulting accuracy estimates, while numerically impressive, fail to generalize to new individuals, the actual clinical use case.
 
-We argue that the apparent ``drop'' in accuracy from 90.9\% to 83.7\% should be reframed as a \textit{scientific correction} rather than a limitation. The subject-level estimate reflects honest generalization performance; the recording-level estimate is an artifact of evaluation methodology. By explicitly reporting both, we enable the field to calibrate expectations and identify studies that may have inadvertently inflated their results.
+The apparent ``drop'' in accuracy from 90.9\% to 83.7\% should be reframed as a \textit{scientific correction} rather than a limitation. The subject-level estimate reflects honest generalization performance; the recording-level estimate is an artifact of evaluation methodology. By explicitly reporting both, we enable the field to calibrate expectations and identify studies that may have inadvertently inflated their results.
 
 % REVISION: Added nuance to accuracy gap interpretation
-\paragraph{Nuanced Interpretation of the Gap.} We acknowledge that the 7.2 percentage point difference between recording-level and subject-level accuracy cannot be attributed \textit{entirely} to identity leakage. A portion of this gap reflects the legitimate increased difficulty of cross-subject generalization: subjects vary in baseline EEG characteristics, medication regimens, disease severity, and recording conditions. Even without any information leakage, we would expect some performance reduction when evaluating on held-out subjects versus held-out recordings from known subjects. Nevertheless, the magnitude of this gap---and its near-universal omission in published studies---underscores the importance of honest reporting. Our contribution lies not in perfectly decomposing this gap, but in demonstrating that subject-level evaluation is both feasible and necessary.
+\paragraph{Nuanced Interpretation of the Gap.} We acknowledge that the 7.2 percentage point difference between recording-level and subject-level accuracy cannot be attributed \textit{entirely} to identity leakage. A portion of this gap reflects the legitimate increased difficulty of cross-subject generalization: subjects vary in baseline EEG characteristics, medication regimens, disease severity, and recording conditions. Even without any information leakage, we would expect some performance reduction when evaluating on held-out subjects versus held-out recordings from known subjects. Nevertheless, the magnitude of this gap and its near-universal omission in published studies underscore the importance of honest reporting. Our contribution lies not in perfectly decomposing this gap, but in demonstrating that subject-level evaluation is both feasible and necessary.
 
 \subsection{Clinical Interpretation of the Confusion Matrix}
 
@@ -354,33 +354,33 @@ The confusion matrix (Table~\ref{tab:confusion}) reveals an asymmetric error pat
     \item 20 of 77 controls are incorrectly flagged (false positives)
 \end{itemize}
 
-For a \textit{screening} tool, this trade-off is clinically appropriate. Missing a schizophrenia case (false negative) carries severe consequences: delayed treatment, disease progression, and increased risk of adverse outcomes. False positives, while burdensome, can be resolved through subsequent clinical evaluation.
+For a \textit{screening} tool, this trade-off is clinically appropriate. Missing a schizophrenia case (false negative) carries severe consequences, including delayed treatment, disease progression, and increased risk of adverse outcomes. False positives, while burdensome, can be resolved through subsequent clinical evaluation.
 
-The 74\% specificity suggests that approximately one in four healthy individuals would be incorrectly flagged for follow-up. In a two-stage screening paradigm---EEG screening followed by clinical interview for positive cases---this false positive rate may be acceptable, particularly in high-risk populations where base rates of schizophrenia are elevated.
+The 74\% specificity suggests that approximately one in four healthy individuals would be incorrectly flagged for follow-up. In a two-stage screening paradigm (EEG screening followed by clinical interview for positive cases), this false positive rate may be acceptable, particularly in high-risk populations where base rates of schizophrenia are elevated.
 
 \subsection{The Case for Uncertainty Quantification}
 
 Beyond point predictions, we advocate for uncertainty quantification in clinical ML systems. Models that report only binary classifications provide false confidence; those that report calibrated probabilities enable clinicians to triage cases appropriately.
 
-In our analysis, prediction probabilities clustered near 0.5 for many subjects, indicating low model confidence. We propose that predictions with probability $<0.6$ or $>0.4$ (i.e., within 10 points of the decision boundary) should be flagged as ``uncertain'' and prioritized for clinical review. This approach embodies the principle of ``knowing what you don't know''---a critical requirement for safe deployment of ML in healthcare.
+In our analysis, prediction probabilities clustered near 0.5 for many subjects, indicating low model confidence. We propose that predictions with probability $<0.6$ or $>0.4$ (within 10 points of the decision boundary) should be flagged as ``uncertain'' and prioritized for clinical review. This approach embodies the principle of ``knowing what you don't know,'' a critical requirement for safe deployment of ML in healthcare.
 
 \subsection{Hardware Implications for Global Health}
 
 Feature importance analysis revealed that frontal channels (Fp1, Fp2) were among the top predictors in our research-grade EEG analysis, providing biological rationale for a single-channel hardware design. This finding has significant implications for accessibility: % REVISION: Changed "validating" to "providing rationale"
 
 \begin{enumerate}[leftmargin=*,nosep]
-    \item \textbf{Cost Reduction:} A single-channel system costs approximately \$50, compared to \$5,000--50,000 for clinical-grade 16+ channel systems.
+    \item \textbf{Cost Reduction:} A single-channel system costs approximately \$50, compared to \$5,000-50,000 for clinical-grade 16+ channel systems.
 
     \item \textbf{Ease of Use:} Single-channel acquisition requires minimal training, enabling potential deployment by community health workers.
 
     \item \textbf{Biological Plausibility:} Frontal abnormalities are well-established in schizophrenia, including hypofrontality, reduced frontal gamma synchrony, and aberrant prefrontal connectivity \cite{uhlhaas2010}.
 \end{enumerate}
 
-Our ESP32-based prototype demonstrates \textit{design} feasibility as a proof-of-concept. \textbf{Critical caveat:} All classification results reported in this paper were obtained from research-grade 16-channel EEG equipment. Future work must validate classification performance using hardware-acquired signals, addressing the substantial domain shift between research-grade and low-cost acquisition systems---a non-trivial challenge involving differences in electrode quality, ADC precision, artifact susceptibility, and signal-to-noise ratio. % REVISION: Added explicit caveat about validation status
+Our ESP32-based prototype demonstrates \textit{design} feasibility as a proof-of-concept. All classification results reported in this paper were obtained from research-grade 16-channel EEG equipment. Future work must validate classification performance using hardware-acquired signals, addressing the substantial domain shift between research-grade and low-cost acquisition systems, a non-trivial challenge involving differences in electrode quality, ADC precision, artifact susceptibility, and signal-to-noise ratio. % REVISION: Added explicit caveat about validation status
 
 \subsection{Comparison with Literature}
 
-Published EEG-based schizophrenia classification studies have reported accuracies ranging from 75\% to 99\% \cite{phang2020, murphy2021}. However, critical examination reveals that many high-accuracy claims stem from:
+Published EEG-based schizophrenia classification studies have reported accuracies ranging from 75\% to 99\% \cite{phang2020, murphy2021}. Critical examination reveals that many high-accuracy claims stem from:
 
 \begin{itemize}[leftmargin=*,nosep]
     \item Recording-level evaluation (identity leakage)
@@ -389,14 +389,14 @@ Published EEG-based schizophrenia classification studies have reported accuracie
     \item Absence of confidence intervals
 \end{itemize}
 
-Our 83.7\% accuracy, while lower than some reported values, is derived from a rigorously validated protocol on a relatively large dataset (N=153). We contend that this estimate is more likely to generalize to real-world clinical deployment than inflated metrics from methodologically flawed studies.
+Our 83.7\% accuracy, while lower than some reported values, is derived from a rigorously validated protocol on a relatively large dataset (N=153). This estimate is more likely to generalize to real-world clinical deployment than inflated metrics from methodologically flawed studies.
 
 % ============================================================================
 % 5. LIMITATIONS
 % ============================================================================
 \section{Limitations}
 
-Several limitations warrant acknowledgment:
+This work has several limitations:
 
 \begin{enumerate}[leftmargin=*,nosep]
     \item \textbf{Single Dataset:} All analyses were conducted on the ASZED-153 dataset. External validation on independent cohorts is essential to confirm generalizability.
@@ -417,7 +417,7 @@ Several limitations warrant acknowledgment:
 % ============================================================================
 \section{Conclusion}
 
-This work demonstrates that rigorous methodology---including strict subject-level cross-validation, pre-specified primary analysis, and transparent reporting---yields honest but modest classification performance for EEG-based schizophrenia detection. The 83.7\% subject-level accuracy represents approximately 7 percentage points less than recording-level metrics, quantifying the inflation attributable to identity leakage.
+This work demonstrates that rigorous methodology (including strict subject-level cross-validation, pre-specified primary analysis, and transparent reporting) yields honest but modest classification performance for EEG-based schizophrenia detection. The 83.7\% subject-level accuracy represents approximately 7 percentage points less than recording-level metrics, quantifying the inflation attributable to identity leakage.
 
 We frame this ``accuracy drop'' as a feature, not a bug. By explicitly correcting for methodological artifacts, we establish a reproducible baseline upon which the field can build. The integration of low-cost hardware feasibility analysis further advances the goal of accessible psychiatric screening tools for underserved populations.
 
