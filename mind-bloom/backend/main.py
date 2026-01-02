@@ -6,13 +6,28 @@ FastAPI backend for the mind-bloom website
 import os
 import tempfile
 import numpy as np
+import logging
 from pathlib import Path
+from typing import Dict, List, Optional
+from datetime import datetime
+from pydantic import BaseModel
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from joblib import load
 import warnings
 
 warnings.filterwarnings("ignore")
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('eeg_validation.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 # Feature extraction imports
 from scipy import signal, stats
@@ -64,6 +79,51 @@ ERP_WINDOWS = {"N100": (20, 30), "P200": (37, 62), "MMN": (25, 62), "P300": (62,
 ENTROPY_SAMPLE_SIZE = 250
 
 
+# ============================================================================
+# Response Models
+# ============================================================================
+
+class ChannelStatus(BaseModel):
+    """Status of individual EEG channel"""
+    name: str
+    found: bool
+    quality_score: Optional[float] = None  # 0-1, based on signal characteristics
+    is_zero: bool = False
+    is_noisy: bool = False
+    snr_db: Optional[float] = None
+
+class SignalQuality(BaseModel):
+    """Overall signal quality metrics"""
+    overall_score: float  # 0-1, weighted average
+    channels_found: int
+    channels_expected: int
+    zero_channels: int
+    noisy_channels: int
+    average_snr_db: Optional[float] = None
+    preprocessing_status: Dict[str, bool]  # Which filters succeeded
+
+class ValidationDetails(BaseModel):
+    """Detailed validation information"""
+    file_format: str
+    original_sampling_rate: float
+    resampled: bool
+    duration_seconds: float
+    total_samples: int
+    channels_in_file: List[str]
+    channel_statuses: List[ChannelStatus]
+    signal_quality: SignalQuality
+    validation_passed: bool
+    validation_errors: List[str]
+    validation_warnings: List[str]
+
+class PreviewData(BaseModel):
+    """EEG preview data for visualization"""
+    channel_names: List[str]
+    sample_data: List[List[float]]  # First few seconds of data
+    sampling_rate: float
+    time_points: List[float]
+
+
 @app.on_event("startup")
 async def load_model():
     global model
@@ -72,6 +132,135 @@ async def load_model():
         print(f"Model loaded from {MODEL_PATH}")
     else:
         print(f"WARNING: Model not found at {MODEL_PATH}")
+
+
+# ============================================================================
+# Signal Quality Assessment Functions
+# ============================================================================
+
+def calculate_snr(channel_data: np.ndarray, fs: float) -> Optional[float]:
+    """Calculate Signal-to-Noise Ratio in dB."""
+    try:
+        if np.allclose(channel_data, 0) or len(channel_data) < 100:
+            return None
+
+        # Use power spectral density to estimate SNR
+        freqs, psd = signal.welch(channel_data, fs=fs, nperseg=min(256, len(channel_data)))
+
+        # Signal: 0.5-45 Hz (EEG range)
+        signal_idx = (freqs >= 0.5) & (freqs <= 45)
+        # Noise: >45 Hz
+        noise_idx = freqs > 45
+
+        if not signal_idx.any() or not noise_idx.any():
+            return None
+
+        signal_power = np.mean(psd[signal_idx])
+        noise_power = np.mean(psd[noise_idx])
+
+        if noise_power > 0:
+            snr = 10 * np.log10(signal_power / noise_power)
+            return float(snr)
+        return None
+    except Exception as e:
+        logger.warning(f"SNR calculation failed: {e}")
+        return None
+
+
+def assess_channel_quality(channel_data: np.ndarray, fs: float, channel_name: str) -> ChannelStatus:
+    """Assess quality of a single channel."""
+    is_zero = np.allclose(channel_data, 0)
+
+    if is_zero:
+        return ChannelStatus(
+            name=channel_name,
+            found=True,
+            quality_score=0.0,
+            is_zero=True,
+            is_noisy=False,
+            snr_db=None
+        )
+
+    # Calculate metrics
+    snr = calculate_snr(channel_data, fs)
+    std = float(np.std(channel_data))
+
+    # Check for excessive noise (very high std or very low SNR)
+    is_noisy = (std > 200) or (snr is not None and snr < -5)
+
+    # Calculate quality score (0-1)
+    quality_score = 0.5  # default
+
+    if snr is not None:
+        # Good SNR: >10dB = 1.0, Poor SNR: <-10dB = 0.0
+        quality_score = np.clip((snr + 10) / 20, 0, 1)
+
+    # Penalize extreme variance
+    if std > 100:
+        quality_score *= 0.7
+
+    return ChannelStatus(
+        name=channel_name,
+        found=True,
+        quality_score=float(quality_score),
+        is_zero=False,
+        is_noisy=is_noisy,
+        snr_db=snr
+    )
+
+
+def assess_signal_quality(data: np.ndarray, fs: float, channels_found: int,
+                         preprocessing_status: Dict[str, bool]) -> tuple:
+    """Assess overall signal quality and create channel statuses."""
+    channel_statuses = []
+    zero_count = 0
+    noisy_count = 0
+    snr_values = []
+    quality_scores = []
+
+    for i, channel_name in enumerate(EXPECTED_CHANNELS):
+        channel_data = data[i]
+
+        # Check if channel was found (non-zero)
+        if np.allclose(channel_data, 0):
+            channel_statuses.append(ChannelStatus(
+                name=channel_name,
+                found=False,
+                quality_score=0.0,
+                is_zero=True,
+                is_noisy=False,
+                snr_db=None
+            ))
+            zero_count += 1
+        else:
+            status = assess_channel_quality(channel_data, fs, channel_name)
+            channel_statuses.append(status)
+
+            if status.is_noisy:
+                noisy_count += 1
+            if status.snr_db is not None:
+                snr_values.append(status.snr_db)
+            if status.quality_score is not None:
+                quality_scores.append(status.quality_score)
+
+    # Calculate overall quality score
+    overall_score = np.mean(quality_scores) if quality_scores else 0.0
+
+    # Penalize for missing channels
+    channel_penalty = channels_found / len(EXPECTED_CHANNELS)
+    overall_score *= channel_penalty
+
+    signal_quality = SignalQuality(
+        overall_score=float(overall_score),
+        channels_found=channels_found,
+        channels_expected=len(EXPECTED_CHANNELS),
+        zero_channels=zero_count,
+        noisy_channels=noisy_count,
+        average_snr_db=float(np.mean(snr_values)) if snr_values else None,
+        preprocessing_status=preprocessing_status
+    )
+
+    return signal_quality, channel_statuses
 
 
 # ============================================================================
@@ -130,27 +319,44 @@ def standardize_to_16ch_matrix(raw, expected_channels, aliases):
 
 
 def preprocess(data, fs):
-    """DC removal, bandpass, notch filter."""
+    """DC removal, bandpass, notch filter. Returns processed data and filter status."""
     out = []
+    bandpass_success = True
+    notch_success = True
+
     for ch in data:
         if np.allclose(ch, 0):
             out.append(ch)
             continue
         ch = ch - np.mean(ch)
+
+        # Bandpass filter
         try:
             nyq = fs / 2.0
             low, high = 0.5 / nyq, min(45 / nyq, 0.99)
             b, a = signal.butter(4, [low, high], "band")
             ch = signal.filtfilt(b, a, ch)
-        except:
-            pass
+        except Exception as e:
+            bandpass_success = False
+            logger.warning(f"Bandpass filter failed: {e}")
+
+        # Notch filter
         try:
             b, a = signal.iirnotch(50, 30, fs=fs)
             ch = signal.filtfilt(b, a, ch)
-        except:
-            pass
+        except Exception as e:
+            notch_success = False
+            logger.warning(f"Notch filter failed: {e}")
+
         out.append(ch)
-    return np.array(out)
+
+    preprocessing_status = {
+        "dc_removal": True,
+        "bandpass_filter": bandpass_success,
+        "notch_filter": notch_success
+    }
+
+    return np.array(out), preprocessing_status
 
 
 def extract_spectral_power(data, fs, bands):
@@ -335,18 +541,175 @@ async def health():
     return {"status": "healthy", "model_loaded": model is not None}
 
 
+@app.post("/validate")
+async def validate_eeg(file: UploadFile = File(...)):
+    """
+    Validate and preview an EEG file without making predictions.
+    Returns detailed validation information and preview data.
+    """
+    filename = file.filename.lower()
+    validation_errors = []
+    validation_warnings = []
+
+    # Basic file type check
+    if not (filename.endswith('.edf') or filename.endswith('.bdf')):
+        validation_errors.append("Invalid file format. Please upload an EDF or BDF file.")
+        return {
+            "validation_passed": False,
+            "validation_errors": validation_errors,
+            "validation_warnings": validation_warnings
+        }
+
+    try:
+        import mne
+        mne.set_log_level("ERROR")
+
+        # Save uploaded file temporarily
+        with tempfile.NamedTemporaryFile(delete=False, suffix=Path(filename).suffix) as tmp:
+            content = await file.read()
+            tmp.write(content)
+            tmp_path = tmp.name
+
+        try:
+            # Load EEG file
+            logger.info(f"Validating file: {filename}")
+            file_format = "BDF" if filename.endswith('.bdf') else "EDF"
+
+            if filename.endswith('.bdf'):
+                raw = mne.io.read_raw_bdf(tmp_path, preload=True, verbose="ERROR")
+            else:
+                raw = mne.io.read_raw_edf(tmp_path, preload=True, verbose="ERROR")
+
+            # Get file info
+            original_fs = float(raw.info["sfreq"])
+            duration = raw.n_times / original_fs
+            channels_in_file = raw.ch_names.copy()
+
+            logger.info(f"File loaded: {len(channels_in_file)} channels, {duration:.2f}s duration, {original_fs}Hz")
+
+            # Resample if needed
+            resampled = False
+            if original_fs != SAMPLING_RATE:
+                raw.resample(SAMPLING_RATE)
+                resampled = True
+                validation_warnings.append(f"Resampled from {original_fs}Hz to {SAMPLING_RATE}Hz")
+
+            # Standardize channels
+            data, n_channels = standardize_to_16ch_matrix(raw, EXPECTED_CHANNELS, CHANNEL_ALIASES)
+
+            # Validation checks
+            if data.shape[1] < 500:
+                validation_errors.append(
+                    f"Recording too short: {duration:.2f}s (need at least 2 seconds)"
+                )
+
+            if n_channels < 10:
+                validation_errors.append(
+                    f"Too few channels matched: {n_channels}/16 found (need at least 10)"
+                )
+
+            # Missing channels
+            missing_channels = []
+            for i, ch in enumerate(EXPECTED_CHANNELS):
+                if np.allclose(data[i], 0):
+                    missing_channels.append(ch)
+
+            if missing_channels:
+                validation_warnings.append(
+                    f"Missing channels ({len(missing_channels)}): {', '.join(missing_channels)}"
+                )
+
+            # Preprocess and assess quality
+            preprocessed_data, preprocessing_status = preprocess(data, SAMPLING_RATE)
+
+            # Track filter failures
+            if not preprocessing_status["bandpass_filter"]:
+                validation_warnings.append("Bandpass filter failed - using DC-removed data only")
+            if not preprocessing_status["notch_filter"]:
+                validation_warnings.append("Notch filter (50Hz) failed - line noise may be present")
+
+            # Assess signal quality
+            signal_quality, channel_statuses = assess_signal_quality(
+                preprocessed_data, SAMPLING_RATE, n_channels, preprocessing_status
+            )
+
+            # Quality warnings
+            if signal_quality.noisy_channels > 0:
+                validation_warnings.append(
+                    f"{signal_quality.noisy_channels} channels appear noisy (high variance or low SNR)"
+                )
+
+            if signal_quality.overall_score < 0.3:
+                validation_warnings.append(
+                    f"Low overall signal quality (score: {signal_quality.overall_score:.2f})"
+                )
+
+            # Create preview data (first 2 seconds)
+            preview_samples = min(500, preprocessed_data.shape[1])  # 2 seconds at 250Hz
+            preview_data = PreviewData(
+                channel_names=[ch.name for ch in channel_statuses if ch.found],
+                sample_data=[
+                    preprocessed_data[i, :preview_samples].tolist()
+                    for i, ch in enumerate(channel_statuses) if ch.found
+                ],
+                sampling_rate=SAMPLING_RATE,
+                time_points=[i / SAMPLING_RATE for i in range(preview_samples)]
+            )
+
+            validation_details = ValidationDetails(
+                file_format=file_format,
+                original_sampling_rate=original_fs,
+                resampled=resampled,
+                duration_seconds=float(duration),
+                total_samples=int(raw.n_times),
+                channels_in_file=channels_in_file,
+                channel_statuses=channel_statuses,
+                signal_quality=signal_quality,
+                validation_passed=len(validation_errors) == 0,
+                validation_errors=validation_errors,
+                validation_warnings=validation_warnings
+            )
+
+            logger.info(
+                f"Validation complete: {'PASSED' if validation_details.validation_passed else 'FAILED'}, "
+                f"Quality: {signal_quality.overall_score:.2f}, "
+                f"Channels: {n_channels}/16"
+            )
+
+            return {
+                "validation": validation_details,
+                "preview": preview_data
+            }
+
+        finally:
+            os.unlink(tmp_path)
+
+    except Exception as e:
+        logger.error(f"Validation error for {filename}: {str(e)}", exc_info=True)
+        validation_errors.append(f"Error processing file: {str(e)}")
+        return {
+            "validation_passed": False,
+            "validation_errors": validation_errors,
+            "validation_warnings": validation_warnings
+        }
+
+
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
     """
     Upload an EEG file (EDF/BDF format) for schizophrenia screening prediction.
-    Returns probability score and risk classification.
+    Returns probability score, risk classification, and detailed validation info.
     """
     if model is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
 
     # Validate file type
     filename = file.filename.lower()
+    validation_errors = []
+    validation_warnings = []
+
     if not (filename.endswith('.edf') or filename.endswith('.bdf')):
+        logger.warning(f"Invalid file type attempted: {filename}")
         raise HTTPException(status_code=400, detail="Please upload an EDF or BDF file")
 
     try:
@@ -361,30 +724,91 @@ async def predict(file: UploadFile = File(...)):
 
         try:
             # Load EEG file
+            logger.info(f"Processing prediction for: {filename}")
+            file_format = "BDF" if filename.endswith('.bdf') else "EDF"
+
             if filename.endswith('.bdf'):
                 raw = mne.io.read_raw_bdf(tmp_path, preload=True, verbose="ERROR")
             else:
                 raw = mne.io.read_raw_edf(tmp_path, preload=True, verbose="ERROR")
 
+            # Get file info
+            original_fs = float(raw.info["sfreq"])
+            duration = raw.n_times / original_fs
+            channels_in_file = raw.ch_names.copy()
+
             # Resample if needed
-            fs = float(raw.info["sfreq"])
-            if fs != SAMPLING_RATE:
+            resampled = False
+            if original_fs != SAMPLING_RATE:
                 raw.resample(SAMPLING_RATE)
+                resampled = True
+                validation_warnings.append(f"Resampled from {original_fs}Hz to {SAMPLING_RATE}Hz")
 
             # Standardize channels
             data, n_channels = standardize_to_16ch_matrix(raw, EXPECTED_CHANNELS, CHANNEL_ALIASES)
 
+            # Validation checks
             if data.shape[1] < 500:
-                raise HTTPException(status_code=400, detail="Recording too short (need at least 2 seconds)")
+                error_msg = f"Recording too short: {duration:.2f}s (need at least 2 seconds)"
+                logger.error(f"Validation failed for {filename}: {error_msg}")
+                raise HTTPException(status_code=400, detail=error_msg)
 
             if n_channels < 10:
-                raise HTTPException(status_code=400, detail=f"Too few channels matched ({n_channels}/16)")
+                # Find which channels were matched
+                found_channels = []
+                missing_channels = []
+                for i, ch in enumerate(EXPECTED_CHANNELS):
+                    if np.allclose(data[i], 0):
+                        missing_channels.append(ch)
+                    else:
+                        found_channels.append(ch)
+
+                error_msg = (
+                    f"Too few channels matched: {n_channels}/16 found (need at least 10). "
+                    f"Found: {', '.join(found_channels)}. "
+                    f"Missing: {', '.join(missing_channels)}"
+                )
+                logger.error(f"Validation failed for {filename}: {error_msg}")
+                raise HTTPException(status_code=400, detail=error_msg)
+
+            # Check for missing channels (for warnings)
+            missing_channels = []
+            for i, ch in enumerate(EXPECTED_CHANNELS):
+                if np.allclose(data[i], 0):
+                    missing_channels.append(ch)
+
+            if missing_channels:
+                validation_warnings.append(
+                    f"Missing {len(missing_channels)} channels: {', '.join(missing_channels)}"
+                )
 
             # Preprocess
-            data = preprocess(data, SAMPLING_RATE)
+            preprocessed_data, preprocessing_status = preprocess(data, SAMPLING_RATE)
+
+            # Track filter failures
+            if not preprocessing_status["bandpass_filter"]:
+                validation_warnings.append("Bandpass filter failed - using DC-removed data only")
+            if not preprocessing_status["notch_filter"]:
+                validation_warnings.append("Notch filter (50Hz) failed - line noise may be present")
+
+            # Assess signal quality
+            signal_quality, channel_statuses = assess_signal_quality(
+                preprocessed_data, SAMPLING_RATE, n_channels, preprocessing_status
+            )
+
+            # Quality warnings
+            if signal_quality.noisy_channels > 0:
+                validation_warnings.append(
+                    f"{signal_quality.noisy_channels} channels appear noisy"
+                )
+
+            if signal_quality.overall_score < 0.3:
+                validation_warnings.append(
+                    f"Low signal quality (score: {signal_quality.overall_score:.2f}) - results may be less reliable"
+                )
 
             # Extract features
-            features = extract_all_features(data, SAMPLING_RATE)
+            features = extract_all_features(preprocessed_data, SAMPLING_RATE)
             features = np.nan_to_num(features, nan=0.0, posinf=0.0, neginf=0.0)
 
             # Predict
@@ -402,14 +826,36 @@ async def predict(file: UploadFile = File(...)):
             else:
                 risk_level = "High"
 
+            logger.info(
+                f"Prediction complete for {filename}: "
+                f"Risk={risk_level}, Prob={probability:.4f}, "
+                f"Quality={signal_quality.overall_score:.2f}, "
+                f"Channels={n_channels}/16"
+            )
+
+            validation_details = ValidationDetails(
+                file_format=file_format,
+                original_sampling_rate=original_fs,
+                resampled=resampled,
+                duration_seconds=float(duration),
+                total_samples=int(data.shape[1]),
+                channels_in_file=channels_in_file,
+                channel_statuses=channel_statuses,
+                signal_quality=signal_quality,
+                validation_passed=True,
+                validation_errors=[],
+                validation_warnings=validation_warnings
+            )
+
             return {
                 "success": True,
                 "prediction": "Schizophrenia Indicators Detected" if prediction == 1 else "No Schizophrenia Indicators",
                 "probability": round(float(probability), 4),
                 "risk_level": risk_level,
-                "confidence": round(abs(probability - 0.5) * 2, 4),  # 0-1 scale
+                "confidence": round(abs(probability - 0.5) * 2, 4),
                 "channels_matched": n_channels,
-                "recording_length_seconds": round(data.shape[1] / SAMPLING_RATE, 2),
+                "recording_length_seconds": round(preprocessed_data.shape[1] / SAMPLING_RATE, 2),
+                "validation": validation_details,
                 "disclaimer": "This is a screening tool only. Results should be interpreted by a qualified healthcare professional."
             }
 
@@ -419,6 +865,7 @@ async def predict(file: UploadFile = File(...)):
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error processing {filename}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
 
 

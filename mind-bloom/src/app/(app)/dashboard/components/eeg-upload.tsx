@@ -48,15 +48,31 @@ export function EegUpload() {
   };
   
   const handleProcessing = async () => {
+    if (!file) return;
+
     setIsProcessing(true);
     try {
-      const result = await performAnalysis();
+      // Create FormData and append the file
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const result = await performAnalysis(formData);
       setAnalysisResult(result);
+
+      // Show validation warnings if any
+      if (result.validation?.validation_warnings && result.validation.validation_warnings.length > 0) {
+        toast({
+          title: 'Validation Warnings',
+          description: `${result.validation.validation_warnings.length} warnings detected. Check details below.`,
+          variant: 'default',
+        });
+      }
     } catch (e) {
-      setError('An error occurred during analysis. Please try again.');
+      const errorMessage = e instanceof Error ? e.message : 'An error occurred during analysis. Please try again.';
+      setError(errorMessage);
       toast({
         title: 'Analysis Failed',
-        description: 'Could not process the EEG file. Please try again.',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -85,7 +101,7 @@ export function EegUpload() {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: { 'application/octet-stream': ['.edf'] },
+    accept: { 'application/octet-stream': ['.edf', '.bdf'] },
     maxSize: 500 * 1024 * 1024, // 500MB
     multiple: false,
   });
@@ -106,7 +122,7 @@ export function EegUpload() {
             EEG Analysis
         </CardTitle>
         <CardDescription>
-          Upload a 16-channel EEG recording in .EDF format. Max file size: 500MB.
+          Upload a 16-channel EEG recording in .EDF or .BDF format. Max file size: 500MB.
         </CardDescription>
       </CardHeader>
       <CardContent>

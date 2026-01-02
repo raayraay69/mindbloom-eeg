@@ -4,58 +4,49 @@ import { adaptiveSeverityDisclosure, type AdaptiveSeverityDisclosureInput } from
 import type { AnalysisResult } from '@/lib/types';
 import { z } from 'zod';
 
-// This function now simulates sending the file to a real model endpoint.
-// In a real application, you would pass the file data or a URL to the file.
-export async function performAnalysis(
-  // The file data would be passed here, e.g., as a FormData object
-): Promise<AnalysisResult> {
-  console.log('Performing analysis by calling external model endpoint...');
+/**
+ * Perform EEG analysis by sending file to the backend API.
+ * Returns prediction results and detailed validation information.
+ */
+export async function performAnalysis(fileData: FormData): Promise<AnalysisResult> {
+  console.log('Performing analysis by calling backend API...');
 
-  // Replace this with the actual URL of your deployed model
-  const modelEndpoint = 'https://your-model-endpoint.run.app/predict';
+  // Use the backend API endpoint (adjust based on your deployment)
+  const apiEndpoint = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+  const modelEndpoint = `${apiEndpoint}/predict`;
 
   try {
-    // In a real scenario, you would send the EEG file data in the request body.
-    // For this example, we'll simulate the request and a successful response.
-    /*
+    const startTime = Date.now();
+
     const response = await fetch(modelEndpoint, {
       method: 'POST',
-      body: fileData, // e.g., FormData containing the file
+      body: fileData,
     });
 
+    const processingTime = Date.now() - startTime;
+
     if (!response.ok) {
-      throw new Error(`Model API request failed with status ${response.status}`);
+      const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(errorData.detail || `API request failed with status ${response.status}`);
     }
 
     const result = await response.json();
+
+    // Map backend response to frontend AnalysisResult type
     return {
-        prediction: result.prediction,
-        confidence: result.confidence,
-        processingTime: result.processingTime,
+      prediction: result.prediction.includes('Detected') ? 'positive' : 'negative',
+      confidence: result.confidence || result.probability,
+      processingTime: processingTime,
+      validation: result.validation,
+      channels_matched: result.channels_matched,
+      recording_length_seconds: result.recording_length_seconds,
     };
-    */
-
-    // Simulating the API call latency and response for now.
-    const processingTime = 15000 + Math.random() * 10000;
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    const prediction = Math.random() > 0.6 ? 'positive' : 'negative';
-    const confidence = prediction === 'positive' 
-      ? 0.45 + Math.random() * 0.45 // 0.45 to 0.9
-      : 0.8 + Math.random() * 0.19; // 0.8 to 0.99
-
-    // This is the structure your API should return
-    const simulatedResult: AnalysisResult = {
-      prediction: prediction as 'positive' | 'negative',
-      confidence: parseFloat(confidence.toFixed(4)),
-      processingTime: Math.round(processingTime),
-    };
-    
-    return simulatedResult;
 
   } catch (error) {
     console.error('Error performing analysis:', error);
-    // It's good practice to throw the error so the client can handle it
+    if (error instanceof Error) {
+      throw error;
+    }
     throw new Error('Failed to get analysis from the model service.');
   }
 }
