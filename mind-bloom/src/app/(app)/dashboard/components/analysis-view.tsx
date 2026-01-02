@@ -5,14 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useToast } from '@/hooks/use-toast';
 import type { AnalysisResult } from '@/lib/types';
 import { cn, formatProcessingTime } from '@/lib/utils';
-import { CheckCircle, Download, Info, RefreshCcw, Smile, Frown, Meh } from 'lucide-react';
+import { CheckCircle, Download, Info, RefreshCcw, Smile, Frown, Meh, ChevronDown } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { getDisclosure } from '../actions';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Pie, PieChart, Cell } from 'recharts';
+import { ValidationDetailsView } from './validation-details';
 
 type Props = {
   result: AnalysisResult;
@@ -25,6 +27,7 @@ export function AnalysisView({ result, onReset }: Props) {
   const [emotionalState, setEmotionalState] = useState<EmotionalState | null>(null);
   const [disclosure, setDisclosure] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showValidation, setShowValidation] = useState(false);
   const { toast } = useToast();
 
   const chartData = useMemo(() => [
@@ -124,6 +127,35 @@ export function AnalysisView({ result, onReset }: Props) {
             </CardContent>
           </Card>
         </div>
+
+        {/* Validation Details Section */}
+        {result.validation && (
+          <Collapsible open={showValidation} onOpenChange={setShowValidation}>
+            <Card className="bg-muted/20">
+              <CollapsibleTrigger asChild>
+                <CardHeader className="cursor-pointer hover:bg-muted/30 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-lg">Data Quality & Validation Details</CardTitle>
+                      <CardDescription>
+                        View channel status, signal quality, and validation information
+                      </CardDescription>
+                    </div>
+                    <ChevronDown className={cn(
+                      "w-5 h-5 transition-transform",
+                      showValidation && "rotate-180"
+                    )} />
+                  </div>
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <CardContent>
+                  <ValidationDetailsView validation={result.validation} />
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
+        )}
 
         {!disclosure ? (
           <Card className="bg-muted/30 border-primary/50 border">
