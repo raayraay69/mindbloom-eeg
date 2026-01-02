@@ -1,0 +1,30 @@
+steps:
+  # Build the frontend container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/mind-bloom-frontend', '.']
+
+  # Push the container image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/mind-bloom-frontend']
+
+  # Deploy container image to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'mind-bloom-frontend'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/mind-bloom-frontend'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--memory'
+      - '512Mi'
+      - '--set-env-vars'
+      - 'NEXT_PUBLIC_API_URL=https://mind-bloom-api-YOUR_PROJECT_HASH-uc.a.run.app'
+
+images:
+  - 'gcr.io/$PROJECT_ID/mind-bloom-frontend'

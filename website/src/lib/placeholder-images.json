@@ -1,0 +1,52 @@
+{
+  "placeholderImages": [
+    {
+      "id": "therapy-app-1",
+      "description": "A calming mobile app interface for mindfulness.",
+      "imageUrl": "https://images.unsplash.com/photo-1699040309386-11c615ed64d5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjYWxtJTIwaW50ZXJmYWNlfGVufDB8fHx8MTc2Njg2NTYwMnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "calm interface"
+    },
+    {
+      "id": "therapy-vr-1",
+      "description": "An immersive VR experience in a serene forest.",
+      "imageUrl": "https://images.unsplash.com/photo-1667115308558-69af998aae84?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHx2ciUyMGZvcmVzdHxlbnwwfHx8fDE3NjY4NjU2MDN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "vr forest"
+    },
+    {
+      "id": "therapy-exercise-1",
+      "description": "AI-guided breathing exercise visualization.",
+      "imageUrl": "https://images.unsplash.com/photo-1688589564655-77c19e47d7c5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxicmVhdGhpbmclMjBleGVyY2lzZXxlbnwwfHx8fDE3NjY4NjU2MDJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "breathing exercise"
+    },
+    {
+      "id": "therapy-sound-1",
+      "description": "Ambient soundscape of gentle ocean waves.",
+      "imageUrl": "https://images.unsplash.com/photo-1525088505678-9c0e4653fdfe?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxvY2VhbiUyMHdhdmVzfGVufDB8fHx8MTc2NjgzMjUwMHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "ocean waves"
+    },
+    {
+      "id": "therapy-app-2",
+      "description": "Pattern-drawing app to focus the mind.",
+      "imageUrl": "https://images.unsplash.com/photo-1604374125777-592bb994d27f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxtYW5kYWxhJTIwcGF0dGVybnxlbnwwfHx8fDE3NjY4NjU2MDJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "mandala pattern"
+    },
+    {
+      "id": "therapy-vr-2",
+      "description": "Virtual reality journey through a starry galaxy.",
+      "imageUrl": "https://images.unsplash.com/photo-1594896661312-3a41f3439870?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxzdGFycnklMjBnYWxheHl8ZW58MHx8fHwxNzY2ODY1NjAzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "starry galaxy"
+    },
+    {
+      "id": "therapy-exercise-2",
+      "description": "A guided meditation session with an AI companion.",
+      "imageUrl": "https://images.unsplash.com/photo-1712249238157-f4e97f98adc4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxndWlkZWQlMjBtZWRpdGF0aW9ufGVufDB8fHx8MTc2Njg2NTYwM3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "guided meditation"
+    },
+    {
+      "id": "therapy-sound-2",
+      "description": "Soothing sounds of a forest at night.",
+      "imageUrl": "https://images.unsplash.com/photo-1595319260223-c068746347cc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxuaWdodCUyMGZvcmVzdHxlbnwwfHx8fDE3NjY4NjU2MDJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "night forest"
+    }
+  ]
+}
