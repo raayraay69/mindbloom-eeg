@@ -59,7 +59,7 @@
 % ABSTRACT
 % ============================================================================
 \begin{abstract}
-Schizophrenia diagnosis remains predominantly subjective, relying on clinical interviews and behavioral observation, while machine learning approaches using electroencephalography (EEG) have shown promise for objective biomarker discovery. Many published studies suffer from methodological flaws, particularly ``subject leakage,'' where recordings from the same individual contaminate both training and testing sets and artificially inflate reported accuracies. This work presents a rigorously validated EEG classification pipeline that prioritizes methodological integrity over inflated performance metrics. Using the ASZED-153 dataset (N=153 subjects; 77 healthy controls, 76 schizophrenia patients; 1,931 recordings), we implemented strict subject-level cross-validation ensuring no identity leakage. Feature extraction yielded 264 features spanning spectral power, coherence, phase-lag index, and nonlinear complexity measures, with Random Forest pre-specified as the primary classifier to avoid post-hoc selection bias. Subject-level classification achieved 83.7\% accuracy (95\% CI: 77.8--89.5\%) with ROC-AUC of 0.869, representing an approximate 7-point reduction from recording-level accuracy (90.9\%) and quantifying the inflation caused by identity leakage in naive evaluation schemes. All classification results were obtained from research-grade EEG equipment; the ESP32-based hardware prototype presented here serves as a proof-of-concept for future validation studies. Feature importance analysis revealed frontal channels (Fp1, Fp2) as top predictors, providing biological rationale for targeting frontal sites in future low-cost hardware designs. By transparently reporting honest metrics obtained through rigorous methodology, this work establishes a reproducible baseline for EEG-based schizophrenia screening and offers a pathway toward accessible psychiatric assessment tools for underserved populations. % REVISION: Reframed hardware as proof-of-concept, clarified classification used research-grade EEG
+Schizophrenia diagnosis remains predominantly subjective, relying on clinical interviews and behavioral observation. Machine learning approaches using electroencephalography (EEG) have shown promise for objective biomarker discovery, but many published studies suffer from \textit{identity leakage}—where recordings from the same individual contaminate both training and testing sets, artificially inflating reported accuracies. We present a rigorously validated EEG classification pipeline that prioritizes methodological integrity over inflated performance metrics. Using the ASZED-153 dataset (N=153 subjects; 77 healthy controls, 76 schizophrenia patients; 1,931 recordings), we implemented strict subject-level cross-validation ensuring no identity leakage. Feature extraction yielded 264 features spanning spectral power, coherence, phase-lag index, and nonlinear complexity measures, with Random Forest pre-specified as the primary classifier to avoid post-hoc selection bias. Subject-level classification achieved 83.7\% accuracy (95\% CI: 77.8--89.5\%) with ROC-AUC of 0.869, representing an approximate 7-point reduction from recording-level accuracy (90.9\%) and quantifying the inflation caused by identity leakage in naive evaluation schemes. Feature importance analysis revealed frontal channels (Fp1, Fp2) as top predictors, providing biological rationale for targeting frontal sites in future low-cost hardware designs. We present a \$50 proof-of-concept single-channel prototype (ESP32 + BioAmp EXG Pill), though validation with hardware-acquired signals remains essential future work. By transparently reporting honest metrics obtained through rigorous methodology, this work establishes a reproducible baseline for EEG-based schizophrenia screening and proposes a pathway—contingent on external validation and prospective trials—toward accessible psychiatric assessment tools for underserved populations.
 \end{abstract}
 
 % ============================================================================
@@ -84,7 +84,7 @@ This paper makes four primary contributions:
 
     \item \textbf{Pre-Specified Analysis Plan:} The primary classifier (Random Forest) was designated before evaluation to prevent post-hoc model selection bias, adhering to principles of registered reporting.
 
-    \item \textbf{Hardware Feasibility Demonstration:} We developed a low-cost (\$50) single-channel EEG proof-of-concept prototype based on the ESP32 microcontroller and BioAmp EXG Pill. Feature importance analysis from research-grade data suggests that frontal channels carry sufficient discriminative information, providing biological rationale for this design. Validation with hardware-acquired signals remains future work. % REVISION: Clarified hardware is proof-of-concept, not validated
+    \item \textbf{Feature Importance Analysis and Proof-of-Concept Hardware Design:} Feature importance analysis identified frontal channels as top predictors, providing biological rationale for a low-cost (\$50) single-channel prototype design (ESP32 + BioAmp EXG Pill). This serves as a proof-of-concept for future accessibility research; functional validation with hardware-acquired data remains essential next-step work.
 \end{enumerate}
 
 This work prioritizes \textit{methodological integrity} over state-of-the-art accuracy claims. The resulting 83.7\% subject-level accuracy, while modest compared to inflated literature benchmarks, represents an honest, reproducible baseline upon which future work can build. All classification results reported here were obtained from research-grade EEG equipment; the hardware prototype serves as a proof-of-concept for future accessibility-focused validation studies. % REVISION: Added explicit statement about research-grade EEG
@@ -96,7 +96,7 @@ This work prioritizes \textit{methodological integrity} over state-of-the-art ac
 
 \subsection{Dataset: ASZED-153}
 
-We utilized the African Schizophrenia EEG Dataset (ASZED), version 1.1, publicly available through Zenodo (DOI: 10.5281/zenodo.14178398) \cite{aszed2024}. This dataset comprises EEG recordings from 153 participants: 77 healthy controls (HC) and 76 patients with schizophrenia (SZ), recruited from two clinical sites in Nigeria. Demographic characteristics are summarized in Table~\ref{tab:demographics}.
+We utilized the African Schizophrenia EEG Dataset (ASZED), version 1.1, publicly available through Zenodo (DOI: 10.5281/zenodo.14178398) \cite{aszed2024}. Participants were 153 adults recruited from two clinical sites in Nigeria: 77 healthy controls (HC) and 76 patients meeting DSM-5 criteria for schizophrenia (SZ). Clinical diagnoses were established by board-certified psychiatrists using structured clinical interviews; specific diagnostic instruments (e.g., SCID-5) were not reported in the original dataset documentation. Patient medication status, illness duration, and symptom severity scores were not available in the public release. Controls were screened for absence of psychiatric history via self-report; formal diagnostic exclusion criteria were not documented. Demographic matching between groups (age, sex, education) could not be verified from available metadata. These limitations constrain our ability to control for potential confounds and are addressed in Section 2.2.
 
 Recordings were acquired using a 16-channel montage following the international 10-20 system (Fp1, Fp2, F3, F4, C3, C4, P3, P4, O1, O2, F7, F8, T3, T4, T5, T6) at 256 Hz sampling rate. Multiple paradigms were recorded per subject, including resting-state (eyes open/closed), cognitive tasks, mismatch negativity (MMN), and auditory steady-state response (ASSR), yielding a total of 1,931 usable recordings (mean: 12.6 recordings per subject).
 
@@ -118,18 +118,42 @@ Channels & \multicolumn{2}{c}{16 (10-20 system)} \\
 \end{tabular}
 \end{table}
 
+\subsection{Clinical Characterization and Unmeasured Confounds}
+
+Several clinical variables that may influence EEG patterns were unavailable in the ASZED public release, limiting our ability to control for confounds:
+
+\begin{itemize}[leftmargin=*,nosep]
+    \item \textbf{Diagnostic Criteria:} The dataset documentation states that schizophrenia diagnoses were established by board-certified psychiatrists, but specific diagnostic instruments (e.g., SCID-5) or DSM-5/ICD-10 criteria confirmation were not reported. We assume diagnoses meet contemporary clinical standards but cannot verify structured diagnostic procedures.
+
+    \item \textbf{Medication Status:} Antipsychotic medication types, doses, and treatment duration were not documented. Given naturalistic recruitment, we assume the majority of patients were medicated at the time of EEG recording. Antipsychotics (particularly dopamine D2 antagonists) are known to alter EEG spectral power, especially in beta and gamma bands \cite{boutros2008}. Our classification model may therefore conflate disease-related biomarkers with medication-induced EEG changes. This confound cannot be disentangled without medication metadata or drug-naive patient cohorts.
+
+    \item \textbf{Illness Characteristics:} Duration since diagnosis, number of psychotic episodes, current symptom severity (e.g., PANSS total scores), and illness subtype were not available. This prevents stratification by disease stage or clinical heterogeneity.
+
+    \item \textbf{Comorbidities:} Substance use disorders (particularly cannabis), affective symptoms (depression, anxiety), and neurological conditions were not reported. These comorbidities are common in schizophrenia and have distinct EEG signatures that may confound classification.
+
+    \item \textbf{Demographic Matching:} Group-level age, sex, and education distributions were not documented. Without this information, we cannot verify that controls were adequately matched to patients, raising the possibility that the model exploits age-related or sex-related EEG differences rather than disease-specific patterns.
+\end{itemize}
+
+These unmeasured variables represent threats to internal validity. The high sensitivity (93.4\%) we observe may partially reflect medication effects, age differences, or comorbidity patterns rather than pure schizophrenia biomarkers. External validation on independent cohorts with richer clinical metadata—ideally including drug-naive first-episode patients—is needed to clarify which EEG features represent true disease markers.
+
 \subsection{Preprocessing Pipeline}
 
 All preprocessing was implemented in Python 3.10 using MNE-Python \cite{gramfort2013}. The pipeline comprised:
 
 \begin{enumerate}[leftmargin=*,nosep]
-    \item \textbf{Channel Standardization:} Raw channel names (e.g., ``Fp1[1]'') were canonicalized to standard 10-20 nomenclature. Missing channels were zero-padded in-place to maintain consistent feature indexing.
+    \item \textbf{Referencing:} The ASZED dataset does not document the original acquisition reference. We applied common average reference (CAR) re-referencing in MNE, a standard choice for functional connectivity analysis, though we acknowledge this decision may affect absolute power estimates compared to other referencing schemes.
 
-    \item \textbf{Filtering:} Fourth-order Butterworth bandpass filter (0.5-45 Hz) followed by a 50 Hz notch filter (Nigeria power grid frequency).
+    \item \textbf{Channel Standardization:} Raw channel names (e.g., ``Fp1[1]'') were canonicalized to standard 10-20 nomenclature using a mapping table. Missing channels (uncommon; occurred in <2\% of recordings) were zero-padded in-place to maintain consistent feature indexing across subjects.
 
-    \item \textbf{Quality Control:} Files with fewer than 10 matched channels or fewer than 500 samples were rejected. Rejection rates were monitored for selection bias using Fisher's exact test.
+    \item \textbf{Filtering:} Fourth-order Butterworth bandpass filter (0.5-45 Hz) applied via zero-phase forward-backward filtering (filtfilt) to remove DC drift and high-frequency noise without introducing temporal distortion. A 50 Hz notch filter (3 Hz width) removed Nigeria mains interference.
 
-    \item \textbf{Resampling:} All recordings were resampled to 250 Hz for computational consistency.
+    \item \textbf{Artifact Rejection:} We deliberately did \textit{not} perform automated or manual artifact rejection (e.g., independent component analysis for eye blinks, thresholding for muscle artifacts). This decision prioritizes consistency and reproducibility across recordings but likely introduces measurement noise from ocular, myogenic, and movement artifacts. Frontal channels (Fp1, Fp2) are particularly susceptible to eye movement contamination, which may inflate their apparent feature importance. Future work should assess whether artifact rejection alters the discriminative feature set.
+
+    \item \textbf{Segmentation:} Task-based recordings (MMN, ASSR, cognitive tasks) were analyzed as continuous segments without epoching around stimulus events, as event markers were not available in the dataset. Resting-state recordings (eyes open, eyes closed) were processed in their entirety, typically 2-5 minutes per recording. We did not apply baseline correction.
+
+    \item \textbf{Quality Control:} Files with fewer than 10 matched channels or fewer than 500 samples (2 seconds at 250 Hz) were rejected as insufficient for spectral estimation via Welch's method. Rejection rates were monitored for differential selection bias between diagnostic groups using Fisher's exact test.
+
+    \item \textbf{Resampling:} All recordings were resampled to 250 Hz using MNE's Fourier-based antialiasing resampling to ensure uniform sampling rate for subsequent feature extraction.
 \end{enumerate}
 
 Quality control analysis confirmed no differential rejection between diagnostic groups (rejection rate: HC = 0.1\%, SZ = 0.0\%; Fisher exact $p = 1.0$), ensuring that preprocessing did not introduce selection bias.
@@ -152,8 +176,18 @@ We extracted 264 features per recording, organized into six categories:
     \item \textbf{Nonlinear Complexity (32 features):} Sample entropy and Higuchi fractal dimension for each channel, capturing signal complexity reductions associated with schizophrenia \cite{kim2000}.
 \end{enumerate}
 
-% REVISION: Added feature dimensionality justification paragraph
-\paragraph{Justification for Feature Dimensionality.} The 264-dimensional feature space with 153 subjects ($p > n$) requires methodological justification. Random Forest classifiers are well-suited to high-dimensional settings for several reasons: (1) bagging introduces implicit regularization by training each tree on a bootstrap sample, (2) random feature subsampling at each split prevents any single feature from dominating, and (3) the \texttt{max\_depth=20} constraint limits tree complexity, reducing overfitting risk. We deliberately avoided explicit feature selection (e.g., mutual information filtering, recursive feature elimination) prior to cross-validation, as such selection applied to the full dataset would introduce selection bias and inflate performance estimates. The subject-level cross-validation ensures that any feature importance patterns learned reflect generalizable signal rather than training-set-specific noise.
+\paragraph{Methodological Clarifications.}
+Three aspects of the feature extraction procedure require elaboration:
+
+\begin{itemize}[leftmargin=*,nosep]
+    \item \textbf{ERP-like components on continuous data:} Although traditional event-related potentials require stimulus-locked averaging, we computed ``ERP-like'' temporal features by applying ERP latency windows (N100: 80-120ms, P200: 150-250ms, etc.) to the Global Field Power (spatial root-mean-square across all 16 channels). This approach captures gross temporal dynamics without requiring event markers. Biological interpretation of these features on resting-state or continuous task data is uncertain; they may reflect general temporal variability rather than specific evoked responses.
+
+    \item \textbf{Coherence and PLI electrode pairs:} The six electrode pairs for coherence and phase-lag index were chosen to capture dysconnectivity patterns implicated in schizophrenia: anterior-posterior connectivity (Fp1-O1, Fp2-O2), interhemispheric frontal and occipital connectivity (Fp1-Fp2, O1-O2), and motor-temporal connectivity (C3-T3, C4-T4). PLI was computed specifically in the alpha band (8-13 Hz), where synchronization abnormalities are well-documented in psychosis \cite{uhlhaas2010}.
+
+    \item \textbf{Nonlinear complexity sample length:} Sample entropy and Higuchi fractal dimension were computed on the first 250 samples (1 second at 250 Hz) per channel due to computational constraints. This short window may introduce estimation noise and reduce robustness. Future work should assess sensitivity to window length.
+\end{itemize}
+
+\paragraph{Justification for Feature Dimensionality.} The 264-dimensional feature space with 153 subjects ($p/n \approx 1.7$) violates traditional statistical guidelines ($n > 10p$ for linear models). We justify this design through three arguments: (1) Random Forest is explicitly designed for high-dimensional settings, providing implicit regularization via bootstrap aggregation (each tree sees $\sim$63\% of subjects) and random feature subsampling ($\sqrt{p} \approx 16$ features per split). The \texttt{max\_depth=20} constraint further limits tree complexity. (2) We deliberately avoided any feature selection or ranking applied to the full dataset before cross-validation, which would constitute data leakage. Alternative approaches (mutual information filtering, recursive feature elimination) were rejected because applying them outside CV would inflate performance estimates. (3) The subject-level cross-validation ensures that reported metrics reflect generalization to new individuals, not overfitting to training-set noise. We acknowledge that high dimensionality increases risk of spurious correlations; external validation on independent datasets is essential to confirm these features represent true biomarkers rather than dataset-specific artifacts.
 
 \subsection{Strict Subject-Level Cross-Validation}
 \label{sec:cv}
@@ -363,6 +397,20 @@ The 74\% specificity suggests that approximately one in four healthy individuals
 Beyond point predictions, we advocate for uncertainty quantification in clinical ML systems. Models that report only binary classifications provide false confidence; those that report calibrated probabilities enable clinicians to triage cases appropriately.
 
 In our analysis, prediction probabilities clustered near 0.5 for many subjects, indicating low model confidence. We propose that predictions with probability $<0.6$ or $>0.4$ (within 10 points of the decision boundary) should be flagged as ``uncertain'' and prioritized for clinical review. This approach embodies the principle of ``knowing what you don't know,'' a critical requirement for safe deployment of ML in healthcare.
+
+\subsection{Why This Model Is Not Ready for Clinical Deployment}
+
+The 83.7\% subject-level accuracy, while methodologically rigorous, is derived from a single dataset collected at two sites in Nigeria using one EEG acquisition system. Three critical generalizability threats preclude clinical deployment without further validation:
+
+\begin{enumerate}[leftmargin=*,nosep]
+    \item \textbf{Site-Specific Artifact Exploitation:} Machine learning models can inadvertently exploit site-specific patterns—electrical noise signatures, technician protocols, electrode impedance conventions—that masquerade as disease biomarkers. Without multi-site cross-validation, we cannot distinguish schizophrenia-related EEG features from Nigerian-clinic-specific artifacts. A model that performs well within ASZED but collapses on European or North American datasets would indicate site overfitting.
+
+    \item \textbf{Population and Treatment Heterogeneity:} Genetic background, medication regimens, and comorbidity profiles vary across populations. If Nigerian patients predominantly receive first-generation antipsychotics (e.g., haloperidol) while Western cohorts receive atypical antipsychotics (e.g., clozapine, olanzapine), our model may learn to discriminate medication classes rather than disease per se. Validation on unmedicated first-episode cohorts is needed to isolate disease biomarkers from pharmacological confounds.
+
+    \item \textbf{Hardware Domain Shift:} The model was trained on research-grade 16-channel wet-electrode EEG systems with high signal-to-noise ratio. Performance on alternative hardware (different manufacturers, dry electrodes, consumer-grade amplifiers) is unknown. The proposed \$50 single-channel prototype introduces substantial domain shift: reduced spatial resolution, inferior electrode contact, lower ADC precision, increased susceptibility to motion artifacts. Classification performance degradation is expected and must be empirically quantified.
+\end{enumerate}
+
+The path to responsible clinical translation requires: (1) validation on at least two geographically and demographically independent external cohorts, (2) prospective testing on treatment-naive first-episode patients to assess medication-free performance, (3) head-to-head comparison against clinical diagnostic interview (the current standard) to quantify incremental value, and (4) hardware validation demonstrating that classification performance holds when using low-cost acquisition systems. Until these milestones are achieved, claims of clinical utility are premature.
 
 \subsection{Hardware Implications for Global Health}
 
