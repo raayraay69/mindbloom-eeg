@@ -61,10 +61,14 @@ app.add_middleware(
 MODEL_PATH = Path(__file__).parent / "schizophrenia_backend_model.pkl"
 model = None
 
-# Constants matching training pipeline
+# Constants matching training pipeline (v2.3.0)
+# Per Data in Brief paper (DOI: 10.1016/j.dib.2025.111934):
+# "Both systems used identical electrode placements following the standard
+# 10-20 system at sixteen sites: Fp1, Fp2, F3, F4, F7, F8, C3, C4, Cz,
+# T3, T4, T5, T6, P3, P4, and Pz."
 EXPECTED_CHANNELS = [
-    "Fp1", "Fp2", "F3", "F4", "C3", "C4", "P3", "P4",
-    "O1", "O2", "F7", "F8", "T3", "T4", "T5", "T6"
+    "Fp1", "Fp2", "F3", "F4", "F7", "F8", "C3", "C4",
+    "Cz", "T3", "T4", "T5", "T6", "P3", "P4", "Pz"
 ]
 CHANNEL_ALIASES = {
     "T7": "T3", "T8": "T4", "P7": "T5", "P8": "T6",
@@ -400,9 +404,19 @@ def extract_erp_components(data, fs, windows):
 
 
 def compute_coherence(data, fs, bands):
-    """Magnitude-squared coherence between electrode pairs."""
+    """
+    Magnitude-squared coherence between electrode pairs.
+
+    Pairs based on ASZED-153 channel layout (per Data in Brief paper):
+    Fp1(0), Fp2(1), F3(2), F4(3), F7(4), F8(5), C3(6), C4(7),
+    Cz(8), T3(9), T4(10), T5(11), T6(12), P3(13), P4(14), Pz(15)
+
+    Interhemispheric pairs commonly disrupted in SZ:
+    (0,1): Fp1-Fp2 prefrontal, (2,3): F3-F4 frontal, (6,7): C3-C4 central,
+    (9,10): T3-T4 temporal, (13,14): P3-P4 parietal, (11,12): T5-T6 posterior temporal
+    """
     features = []
-    pairs = [(0, 8), (1, 9), (0, 1), (8, 9), (4, 12), (5, 13)]
+    pairs = [(0, 1), (2, 3), (6, 7), (9, 10), (13, 14), (11, 12)]
 
     for c1, c2 in pairs:
         if np.allclose(data[c1], 0) or np.allclose(data[c2], 0):
@@ -420,9 +434,15 @@ def compute_coherence(data, fs, bands):
 
 
 def compute_pli(data):
-    """Phase-lag index."""
+    """
+    Phase-lag index (Stam et al., 2007). Quantifies phase synchronization
+    while being relatively insensitive to volume conduction artifacts.
+
+    Same interhemispheric pairs as coherence, based on ASZED-153 channels:
+    Fp1-Fp2, F3-F4, C3-C4, T3-T4, P3-P4, T5-T6
+    """
     features = []
-    pairs = [(0, 8), (1, 9), (0, 1), (8, 9), (4, 12), (5, 13)]
+    pairs = [(0, 1), (2, 3), (6, 7), (9, 10), (13, 14), (11, 12)]
 
     for c1, c2 in pairs:
         if np.allclose(data[c1], 0) or np.allclose(data[c2], 0):
