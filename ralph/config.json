@@ -1,0 +1,97 @@
+{
+  "name": "mindbloom-validation-ralph",
+  "version": "1.0.0",
+  "description": "Multi-agent Ralph loop for MindBloom validation phases",
+
+  "orchestration": {
+    "max_iterations": 50,
+    "parallel_agents": 3,
+    "iteration_delay_ms": 2000,
+    "completion_phrase": "RALPH_LOOP_COMPLETE"
+  },
+
+  "phases": {
+    "phase1": {
+      "name": "Internal Validation",
+      "agent_prompt": "agents/phase1-internal-validation.md",
+      "dependencies": [],
+      "parallel_safe": true,
+      "completion_signal": "PHASE1_COMPLETE",
+      "priority": 1
+    },
+    "phase2": {
+      "name": "Hardware Validation",
+      "agent_prompt": "agents/phase2-hardware-validation.md",
+      "dependencies": [],
+      "parallel_safe": true,
+      "completion_signal": "PHASE2_COMPLETE",
+      "priority": 1
+    },
+    "phase3": {
+      "name": "External Validation",
+      "agent_prompt": "agents/phase3-external-validation.md",
+      "dependencies": ["phase1"],
+      "parallel_safe": false,
+      "completion_signal": "PHASE3_COMPLETE",
+      "priority": 2
+    },
+    "phase4": {
+      "name": "Prospective Pilot",
+      "agent_prompt": "agents/phase4-prospective-pilot.md",
+      "dependencies": ["phase2", "phase3"],
+      "parallel_safe": false,
+      "completion_signal": "PHASE4_COMPLETE",
+      "priority": 3
+    },
+    "webapp": {
+      "name": "WebApp Enhancements",
+      "agent_prompt": "agents/webapp-enhancements.md",
+      "dependencies": [],
+      "parallel_safe": true,
+      "completion_signal": "WEBAPP_COMPLETE",
+      "priority": 1
+    }
+  },
+
+  "execution_matrix": [
+    {
+      "stage": 1,
+      "parallel": ["phase1", "phase2", "webapp"],
+      "description": "Initial parallel execution of independent phases"
+    },
+    {
+      "stage": 2,
+      "parallel": ["phase3"],
+      "requires": ["phase1"],
+      "description": "External validation after internal validation passes"
+    },
+    {
+      "stage": 3,
+      "parallel": ["phase4"],
+      "requires": ["phase2", "phase3"],
+      "description": "Prospective pilot after hardware and external validation"
+    }
+  ],
+
+  "success_criteria": {
+    "phase1": "accuracy >= 0.80 AND metrics_within_5_percent",
+    "phase2": "snr >= 20 AND latency_ms < 50",
+    "phase3": "accuracy >= 0.70 OR domain_shift_documented",
+    "phase4": "irb_draft_complete AND clinical_site_identified",
+    "webapp": "all_high_priority_complete"
+  },
+
+  "files": {
+    "main_prompt": "RALPH_PROMPT.md",
+    "progress": "PROGRESS.md",
+    "log": "ralph.log"
+  },
+
+  "output_paths": {
+    "validation_results": "../Research-Paper/VALIDATION_RESULTS.md",
+    "external_validation": "../Research-Paper/EXTERNAL_VALIDATION.md",
+    "clinical_proposal": "../Research-Paper/CLINICAL_PROPOSAL.md",
+    "irb_materials": "../Research-Paper/IRB_MATERIALS/",
+    "hardware_docs": "../mind-bloom/docs/hardware-assembly.md"
+  }
+}
