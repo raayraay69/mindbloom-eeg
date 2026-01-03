@@ -7,6 +7,7 @@ import os
 import tempfile
 import numpy as np
 import logging
+import json
 from pathlib import Path
 from typing import Dict, List, Optional
 from datetime import datetime
@@ -59,7 +60,9 @@ app.add_middleware(
 
 # Load model on startup
 MODEL_PATH = Path(__file__).parent / "schizophrenia_backend_model.pkl"
+METADATA_PATH = Path(__file__).parent / "model_metadata.json"
 model = None
+model_metadata = None
 
 # Constants matching training pipeline (v2.3.0)
 # Per Data in Brief paper (DOI: 10.1016/j.dib.2025.111934):
@@ -130,12 +133,25 @@ class PreviewData(BaseModel):
 
 @app.on_event("startup")
 async def load_model():
-    global model
+    global model, model_metadata
     if MODEL_PATH.exists():
         model = load(MODEL_PATH)
         print(f"Model loaded from {MODEL_PATH}")
     else:
         print(f"WARNING: Model not found at {MODEL_PATH}")
+
+    if METADATA_PATH.exists():
+        with open(METADATA_PATH, 'r') as f:
+            model_metadata = json.load(f)
+        print(f"Model metadata loaded from {METADATA_PATH}")
+    else:
+        print(f"WARNING: Model metadata not found at {METADATA_PATH}")
+        # Create default metadata if file doesn't exist
+        model_metadata = {
+            "version": "1.0.0",
+            "dataset": "ASZED-153",
+            "algorithm": "RandomForestClassifier"
+        }
 
 
 # ============================================================================
@@ -552,7 +568,8 @@ async def root():
     return {
         "message": "EEG Schizophrenia Screening API",
         "status": "ready" if model is not None else "model not loaded",
-        "version": "1.0.0"
+        "version": "1.0.0",
+        "model_info": model_metadata if model_metadata else None
     }
 
 
@@ -575,6 +592,10 @@ async def validate_eeg(file: UploadFile = File(...)):
     if not (filename.endswith('.edf') or filename.endswith('.bdf')):
         validation_errors.append("Invalid file format. Please upload an EDF or BDF file.")
         return {
+            "error": "INVALID_INPUT",
+            "code": "UNSUPPORTED_FORMAT",
+            "message": "Invalid file format. Please upload an EDF or BDF file.",
+            "accepted_formats": [".edf", ".bdf"],
             "validation_passed": False,
             "validation_errors": validation_errors,
             "validation_warnings": validation_warnings
@@ -618,15 +639,25 @@ async def validate_eeg(file: UploadFile = File(...)):
             data, n_channels = standardize_to_16ch_matrix(raw, EXPECTED_CHANNELS, CHANNEL_ALIASES)
 
             # Validation checks
-            if data.shape[1] < 500:
-                validation_errors.append(
-                    f"Recording too short: {duration:.2f}s (need at least 2 seconds)"
-                )
+            min_duration_seconds = 2.0
+            min_samples = int(min_duration_seconds * SAMPLING_RATE)
+            if data.shape[1] < min_samples:
+                validation_errors.append({
+                    "code": "INSUFFICIENT_DURATION",
+                    "message": f"Recording too short: {duration:.2f}s (minimum {min_duration_seconds}s required)",
+                    "current_duration": round(duration, 2),
+                    "minimum_duration": min_duration_seconds
+                })
 
-            if n_channels < 10:
-                validation_errors.append(
-                    f"Too few channels matched: {n_channels}/16 found (need at least 10)"
-                )
+            min_channels_required = 10
+            if n_channels < min_channels_required:
+                validation_errors.append({
+                    "code": "INSUFFICIENT_CHANNELS",
+                    "message": f"Too few channels matched: {n_channels}/16 found (minimum {min_channels_required} required)",
+                    "channels_found": n_channels,
+                    "channels_required": min_channels_required,
+                    "channels_expected": len(EXPECTED_CHANNELS)
+                })
 
             # Missing channels
             missing_channels = []
@@ -730,7 +761,15 @@ async def predict(file: UploadFile = File(...)):
 
     if not (filename.endswith('.edf') or filename.endswith('.bdf')):
         logger.warning(f"Invalid file type attempted: {filename}")
-        raise HTTPException(status_code=400, detail="Please upload an EDF or BDF file")
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "INVALID_INPUT",
+                "code": "UNSUPPORTED_FORMAT",
+                "message": "Invalid file format. Please upload an EDF or BDF file.",
+                "accepted_formats": [".edf", ".bdf"]
+            }
+        )
 
     try:
         import mne
@@ -768,12 +807,21 @@ async def predict(file: UploadFile = File(...)):
             data, n_channels = standardize_to_16ch_matrix(raw, EXPECTED_CHANNELS, CHANNEL_ALIASES)
 
             # Validation checks
-            if data.shape[1] < 500:
-                error_msg = f"Recording too short: {duration:.2f}s (need at least 2 seconds)"
-                logger.error(f"Validation failed for {filename}: {error_msg}")
-                raise HTTPException(status_code=400, detail=error_msg)
+            min_duration_seconds = 2.0
+            min_samples = int(min_duration_seconds * SAMPLING_RATE)
+            if data.shape[1] < min_samples:
+                error_detail = {
+                    "error": "INVALID_INPUT",
+                    "code": "INSUFFICIENT_DURATION",
+                    "message": f"Recording too short: {duration:.2f}s (minimum {min_duration_seconds}s required)",
+                    "current_duration": round(duration, 2),
+                    "minimum_duration": min_duration_seconds
+                }
+                logger.error(f"Validation failed for {filename}: {error_detail['message']}")
+                raise HTTPException(status_code=400, detail=error_detail)
 
-            if n_channels < 10:
+            min_channels_required = 10
+            if n_channels < min_channels_required:
                 # Find which channels were matched
                 found_channels = []
                 missing_channels = []
@@ -783,13 +831,18 @@ async def predict(file: UploadFile = File(...)):
                     else:
                         found_channels.append(ch)
 
-                error_msg = (
-                    f"Too few channels matched: {n_channels}/16 found (need at least 10). "
-                    f"Found: {', '.join(found_channels)}. "
-                    f"Missing: {', '.join(missing_channels)}"
-                )
-                logger.error(f"Validation failed for {filename}: {error_msg}")
-                raise HTTPException(status_code=400, detail=error_msg)
+                error_detail = {
+                    "error": "INVALID_INPUT",
+                    "code": "INSUFFICIENT_CHANNELS",
+                    "message": f"Too few channels matched: {n_channels}/16 found (minimum {min_channels_required} required)",
+                    "channels_found": n_channels,
+                    "channels_required": min_channels_required,
+                    "channels_expected": len(EXPECTED_CHANNELS),
+                    "found_channel_names": found_channels,
+                    "missing_channel_names": missing_channels
+                }
+                logger.error(f"Validation failed for {filename}: {error_detail['message']}")
+                raise HTTPException(status_code=400, detail=error_detail)
 
             # Check for missing channels (for warnings)
             missing_channels = []
@@ -836,6 +889,15 @@ async def predict(file: UploadFile = File(...)):
             probability = model.predict_proba(X)[0][1]
             prediction = int(probability >= 0.5)
 
+            # Determine risk level and uncertainty status
+            confidence_status = "CONFIDENT"
+            clinical_recommendation = None
+
+            # Flag uncertain predictions (probability between 0.4 and 0.6)
+            if 0.4 <= probability <= 0.6:
+                confidence_status = "UNCERTAIN"
+                clinical_recommendation = "Recommend clinical follow-up; prediction confidence below threshold"
+
             # Determine risk level
             if probability < 0.3:
                 risk_level = "Low"
@@ -873,9 +935,19 @@ async def predict(file: UploadFile = File(...)):
                 "probability": round(float(probability), 4),
                 "risk_level": risk_level,
                 "confidence": round(abs(probability - 0.5) * 2, 4),
+                "confidence_status": confidence_status,
+                "clinical_recommendation": clinical_recommendation,
                 "channels_matched": n_channels,
                 "recording_length_seconds": round(preprocessed_data.shape[1] / SAMPLING_RATE, 2),
                 "validation": validation_details,
+                "model_info": {
+                    "version": model_metadata.get("version", "1.0.0"),
+                    "training_date": model_metadata.get("training_date", "Unknown"),
+                    "dataset": model_metadata.get("dataset", {}).get("name", "ASZED-153"),
+                    "algorithm": model_metadata.get("model", {}).get("algorithm", "RandomForestClassifier"),
+                    "feature_count": model_metadata.get("model", {}).get("feature_count", 264),
+                    "accuracy_reported": model_metadata.get("performance", {}).get("production_accuracy", 0.837)
+                } if model_metadata else None,
                 "disclaimer": "This is a screening tool only. Results should be interpreted by a qualified healthcare professional."
             }
 
