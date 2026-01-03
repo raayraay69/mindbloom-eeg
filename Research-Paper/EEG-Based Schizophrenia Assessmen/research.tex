@@ -99,7 +99,7 @@ This work prioritizes \textit{methodological integrity} over state-of-the-art ac
 
 We utilized the African Schizophrenia EEG Dataset (ASZED), version 1.1, publicly available through Zenodo (DOI: 10.5281/zenodo.14178398) \cite{aszed2024}. Participants were 153 adults recruited from two clinical sites in Nigeria: 77 healthy controls (HC) and 76 patients meeting DSM-5 criteria for schizophrenia (SZ). Clinical diagnoses were established by board-certified psychiatrists using structured clinical interviews; specific diagnostic instruments (e.g., SCID-5) were not reported in the original dataset documentation. Patient medication status, illness duration, and symptom severity scores were not available in the public release. Controls were screened for absence of psychiatric history via self-report; formal diagnostic exclusion criteria were not documented. Demographic matching between groups (age, sex, education) could not be verified from available metadata. These limitations constrain our ability to control for potential confounds and are addressed in Section 2.2.
 
-Recordings were acquired using a 16-channel montage following the international 10-20 system (Fp1, Fp2, F3, F4, C3, C4, P3, P4, O1, O2, F7, F8, T3, T4, T5, T6) at 256 Hz sampling rate. Multiple paradigms were recorded per subject, including resting-state (eyes open/closed), cognitive tasks, mismatch negativity (MMN), and auditory steady-state response (ASSR), yielding a total of 1,931 usable recordings (mean: 12.6 recordings per subject).
+Recordings were acquired using a 16-channel montage following the international 10-20 system (Fp1, Fp2, F3, F4, F7, F8, C3, C4, Cz, T3, T4, T5, T6, P3, P4, Pz) using two EEG systems: Contec-KT2400 (200 Hz) and BrainMaster Discovery24-E (256 Hz). Multiple paradigms were recorded per subject, including resting-state (eyes closed), arithmetic working-memory task, mismatch negativity (MMN), and 40 Hz auditory steady-state response (ASSR), yielding a total of 1,931 usable recordings (mean: 12.6 recordings per subject). Channel placement and paradigm specifications are per Mosaku et al. \cite{mosaku2025aszed}.
 
 \begin{table}[t]
 \centering
@@ -113,7 +113,7 @@ N (subjects) & 77 & 76 \\
 N (recordings) & 990 & 941 \\
 Recordings/subject & 12.9 & 12.4 \\
 Recording sites & \multicolumn{2}{c}{2 (Nigeria)} \\
-Sampling rate & \multicolumn{2}{c}{256 Hz} \\
+Sampling rate & \multicolumn{2}{c}{200/256 Hz (resampled to 250 Hz)} \\
 Channels & \multicolumn{2}{c}{16 (10-20 system)} \\
 \bottomrule
 \end{tabular}
@@ -168,7 +168,7 @@ We extracted 264 features per recording, organized into six categories:
 
     \item \textbf{ERP-like Components (20 features):} ERP-like temporal dynamics computed on the Global Field Power (GFP; spatial RMS across all 16 channels) in windows corresponding to N100 (80-120ms), P200 (150-250ms), MMN (150-200ms), and P300 (250-400ms) latencies. Features include peak amplitude, peak latency, window mean, standard deviation, and area under curve. % REVISION: Clarified GFP-based computation and added latency windows
 
-    \item \textbf{Inter-channel Coherence (30 features):} Magnitude-squared coherence between six electrode pairs across five frequency bands. Pairs were chosen to capture anterior-posterior connectivity (Fp1-O1, Fp2-O2), interhemispheric frontal and occipital connectivity (Fp1-Fp2, O1-O2), and motor-temporal connectivity (C3-T3, C4-T4), regions implicated in schizophrenia-related dysconnectivity. % REVISION: Added electrode pair rationale
+    \item \textbf{Inter-channel Coherence (30 features):} Magnitude-squared coherence between six electrode pairs across five frequency bands. Pairs were chosen to capture interhemispheric connectivity commonly disrupted in schizophrenia: prefrontal (Fp1-Fp2), frontal (F3-F4), central (C3-C4), temporal (T3-T4), posterior temporal (T5-T6), and parietal (P3-P4) regions \cite{uhlhaas2010}. % REVISION: Updated pairs to match ASZED-153 electrode montage per Mosaku et al.
 
     \item \textbf{Phase-Lag Index (6 features):} PLI computed for the same six electrode pairs in the alpha band (8-13 Hz), chosen because alpha-band synchronization abnormalities are well-documented in schizophrenia. PLI quantifies phase synchronization while minimizing volume conduction artifacts \cite{stam2007}. % REVISION: Added frequency band specification (alpha)
 
@@ -183,7 +183,7 @@ Three aspects of the feature extraction procedure require elaboration:
 \begin{itemize}[leftmargin=*,nosep]
     \item \textbf{ERP-like components on continuous data:} Although traditional event-related potentials require stimulus-locked averaging, we computed ``ERP-like'' temporal features by applying ERP latency windows (N100: 80-120ms, P200: 150-250ms, etc.) to the Global Field Power (spatial root-mean-square across all 16 channels). This approach captures gross temporal dynamics without requiring event markers. Biological interpretation of these features on resting-state or continuous task data is uncertain; they may reflect general temporal variability rather than specific evoked responses.
 
-    \item \textbf{Coherence and PLI electrode pairs:} The six electrode pairs for coherence and phase-lag index were chosen to capture dysconnectivity patterns implicated in schizophrenia: anterior-posterior connectivity (Fp1-O1, Fp2-O2), interhemispheric frontal and occipital connectivity (Fp1-Fp2, O1-O2), and motor-temporal connectivity (C3-T3, C4-T4). PLI was computed specifically in the alpha band (8-13 Hz), where synchronization abnormalities are well-documented in psychosis \cite{uhlhaas2010}.
+    \item \textbf{Coherence and PLI electrode pairs:} The six electrode pairs for coherence and phase-lag index were chosen to capture interhemispheric dysconnectivity patterns implicated in schizophrenia: prefrontal (Fp1-Fp2), frontal (F3-F4), central (C3-C4), temporal (T3-T4), posterior temporal (T5-T6), and parietal (P3-P4). These pairs were selected to match the ASZED-153 electrode montage (which does not include occipital electrodes O1/O2). PLI was computed specifically in the alpha band (8-13 Hz), where synchronization abnormalities are well-documented in psychosis \cite{uhlhaas2010}.
 
     \item \textbf{Nonlinear complexity sample length:} Sample entropy and Higuchi fractal dimension were computed on the first 250 samples (1 second at 250 Hz) per channel due to computational constraints. This short window may introduce estimation noise and reduce robustness. Future work should assess sensitivity to window length.
 \end{itemize}
@@ -596,6 +596,9 @@ Saeb S, Lonini L, Jayaraman A, Mohr DC, Kording KP. The need to approximate the 
 
 \bibitem{aszed2024}
 African Schizophrenia EEG Dataset (ASZED). Zenodo. 2024. DOI: 10.5281/zenodo.14178398.
+
+\bibitem{mosaku2025aszed}
+Mosaku SK, Olateju EO, Ayodele KP, et al. An open-access EEG dataset from indigenous African populations for schizophrenia research. \textit{Data in Brief}. 2025;62:111934. DOI: 10.1016/j.dib.2025.111934.
 
 \bibitem{gramfort2013}
 Gramfort A, Luessi M, Larson E, et al. MEG and EEG data analysis with MNE-Python. \textit{Front Neurosci}. 2013;7:267.

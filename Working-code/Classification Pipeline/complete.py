@@ -1,5 +1,10 @@
 """
-ASZED EEG Classification Pipeline (v2.2.8) - FINAL
+ASZED EEG Classification Pipeline (v2.3.0)
+
+Authoritative Reference:
+  Mosaku et al. (2025). "An open-access EEG dataset from indigenous African
+  populations for schizophrenia research." Data in Brief, 62, 111934.
+  DOI: 10.1016/j.dib.2025.111934
 
 Methodological corrections from earlier versions:
   - v2.0: Fixed data leakage (scaler fit only on train folds), implemented
@@ -35,22 +40,33 @@ Methodological corrections from earlier versions:
       on EDF/BDF files where MNE labels channels as 'misc' instead of 'eeg')
     * Full QC dict saved in JSON output (qc_analysis_full) for reviewer defensibility
     * Per-fold subject class balance printed (proves stratification worked)
-  - v2.2.8 (FINAL):
+  - v2.2.8:
     * Explicit class count validation before StratifiedKFold (fail loudly if
       min class < n_splits, no silent fallback to non-stratified KFold)
     * Optimized per-fold class balance: O(1) dict lookup instead of O(N) np.where
     * Final trained model saved as .pkl file (trained on ALL data after CV)
     * Channel canonicalization now strips [number] suffixes (e.g., "Fp1[1]" -> "Fp1")
+  - v2.3.0:
+    * CRITICAL FIX: Channel montage corrected per Data in Brief paper
+      OLD: Fp1,Fp2,F3,F4,C3,C4,P3,P4,O1,O2,F7,F8,T3,T4,T5,T6 (O1,O2 NOT in dataset!)
+      NEW: Fp1,Fp2,F3,F4,F7,F8,C3,C4,Cz,T3,T4,T5,T6,P3,P4,Pz (matches paper exactly)
+    * Coherence/PLI pairs updated for correct interhemispheric connections
+    * Added paper DOI (10.1016/j.dib.2025.111934) as authoritative reference
 
 Dataset: ASZED-153 (African Schizophrenia EEG Dataset)
-  - 76 schizophrenia patients + 77 healthy controls
-  - Multiple paradigms: resting state, cognitive tasks, MMN, ASSR
-  - Two Nigerian recording sites (50 Hz power grid)
-  - DOI: 10.5281/zenodo.14178398
+  Data DOI: 10.5281/zenodo.14178398
+  Paper DOI: 10.1016/j.dib.2025.111934
+  Specifications per paper:
+    - 76 schizophrenia patients (Age: 40±12; 45F, 31M)
+    - 77 healthy controls (Age: 38±13; 28F, 49M)
+    - 16 channels: Fp1, Fp2, F3, F4, F7, F8, C3, C4, Cz, T3, T4, T5, T6, P3, P4, Pz
+    - Devices: Contec-KT2400 (200 Hz) and BrainMaster Discovery24-E (256 Hz)
+    - Paradigms: resting state, arithmetic task, auditory oddball (MMN), 40Hz ASSR
+    - Two Nigerian sites (OAUTHC Ile-Ife, Wesley Guild Ilesa), 50 Hz power grid
 
 Author: Eric Raymond
 Affiliation: Purdue University Indianapolis / Indiana University South Bend
-Date: December 2025
+Date: January 2026
 """
 
 import os
@@ -142,11 +158,15 @@ N_JOBS = int(os.environ.get("SLURM_CPUS_ON_NODE", os.cpu_count() or 4))
 # Pre-specified to avoid model selection bias (see Cawley & Talbot, 2010)
 PRIMARY_MODEL_NAME = "Random Forest"
 
-# Standard 10-20 system 16-channel montage (expected order for ASZED)
+# Standard 10-20 system 16-channel montage for ASZED-153
+# Per Data in Brief paper (DOI: 10.1016/j.dib.2025.111934):
+# "Both systems used identical electrode placements following the standard
+# 10–20 system at sixteen sites: Fp1, Fp2, F3, F4, F7, F8, C3, C4, Cz,
+# T3, T4, T5, T6, P3, P4, and Pz."
 # Feature index i always corresponds to EXPECTED_CHANNELS[i % 16]
 EXPECTED_CHANNELS = [
-    "Fp1", "Fp2", "F3", "F4", "C3", "C4", "P3", "P4",
-    "O1", "O2", "F7", "F8", "T3", "T4", "T5", "T6"
+    "Fp1", "Fp2", "F3", "F4", "F7", "F8", "C3", "C4",
+    "Cz", "T3", "T4", "T5", "T6", "P3", "P4", "Pz"
 ]
 
 # Alternative naming conventions we might encounter
@@ -252,6 +272,11 @@ class Config:
     """
     Central configuration for paths, sampling parameters, and feature extraction
     settings. Frequency bands follow standard clinical EEG conventions.
+
+    Per Data in Brief paper (DOI: 10.1016/j.dib.2025.111934):
+      - Contec-KT2400: 200 Hz, 50 Hz notch, 0-100 Hz bandpass
+      - BrainMaster Discovery24-E: 256 Hz, no filtering (z-score QC)
+      - We resample both to 250 Hz for uniform feature extraction
     """
     def __init__(self, data_path=None, output_path=None):
         self.DATA_ROOT = Path(data_path) if data_path else Path(".")
@@ -259,7 +284,12 @@ class Config:
         self.CSV_PATH = self.DATA_ROOT / "data" / "ASZED_SpreadSheet.csv"
         self.OUTPUT_PATH = Path(output_path) if output_path else self.DATA_ROOT / "results"
 
+        # Original device sampling rates (per paper):
+        #   Contec-KT2400: 200 Hz
+        #   BrainMaster Discovery24-E: 256 Hz
+        # Target rate chosen to be between both for minimal interpolation artifacts
         self.SAMPLING_RATE = 250
+        self.ORIGINAL_RATES = {"Contec-KT2400": 200, "BrainMaster-Discovery24E": 256}
         self.N_CHANNELS = 16
 
         # Standard clinical frequency bands
@@ -271,12 +301,15 @@ class Config:
             "gamma": (30, 45),
         }
 
-        # ERP windows defined in sample indices (not ms) for this dataset
+        # ERP windows in sample indices at 250 Hz
+        # MMN paradigm per paper: standard 1KHz/100ms, deviants 1KHz/250ms and 3KHz/100ms
+        # Typical MMN latency: 100-250ms post-stimulus
+        # At 250 Hz: 100ms = 25 samples, 250ms = 62.5 samples
         self.ERP_WINDOWS = {
-            "N100": (20, 30),
-            "P200": (37, 62),
-            "MMN": (25, 62),
-            "P300": (62, 125)
+            "N100": (20, 30),    # 80-120ms - early sensory response
+            "P200": (37, 62),   # 148-248ms - attention modulation
+            "MMN": (25, 62),    # 100-248ms - mismatch negativity window
+            "P300": (62, 125)   # 248-500ms - cognitive processing
         }
 
         self.FILTER_LOW = 0.5
@@ -376,9 +409,16 @@ def compute_coherence(data, fs, bands):
     Magnitude-squared coherence between electrode pairs. Focus on
     interhemispheric and anterior-posterior connections commonly
     disrupted in schizophrenia.
+
+    Pairs based on ASZED-153 channel layout (per Data in Brief paper):
+    Fp1(0), Fp2(1), F3(2), F4(3), F7(4), F8(5), C3(6), C4(7),
+    Cz(8), T3(9), T4(10), T5(11), T6(12), P3(13), P4(14), Pz(15)
     """
     features = []
-    pairs = [(0, 8), (1, 9), (0, 1), (8, 9), (4, 12), (5, 13)]
+    # Interhemispheric pairs commonly disrupted in SZ:
+    # (0,1): Fp1-Fp2 prefrontal, (6,7): C3-C4 central, (9,10): T3-T4 temporal
+    # (13,14): P3-P4 parietal, (2,3): F3-F4 frontal, (11,12): T5-T6 posterior temporal
+    pairs = [(0, 1), (2, 3), (6, 7), (9, 10), (13, 14), (11, 12)]
 
     for c1, c2 in pairs:
         if np.allclose(data[c1], 0) or np.allclose(data[c2], 0):
@@ -399,9 +439,12 @@ def compute_pli(data):
     """
     Phase-lag index (Stam et al., 2007). Quantifies phase synchronization
     while being relatively insensitive to volume conduction artifacts.
+
+    Same interhemispheric pairs as coherence, based on ASZED-153 channels.
     """
     features = []
-    pairs = [(0, 8), (1, 9), (0, 1), (8, 9), (4, 12), (5, 13)]
+    # Match coherence pairs: Fp1-Fp2, F3-F4, C3-C4, T3-T4, P3-P4, T5-T6
+    pairs = [(0, 1), (2, 3), (6, 7), (9, 10), (13, 14), (11, 12)]
 
     for c1, c2 in pairs:
         if np.allclose(data[c1], 0) or np.allclose(data[c2], 0):
@@ -943,7 +986,7 @@ def analyze_rejections(results, label_map, file_subjects):
 def process_dataset(config: Config, max_files=None):
     """Main preprocessing routine."""
     print("\n" + "=" * 70)
-    print("ASZED-153 PREPROCESSING (v2.2.8)")
+    print("ASZED-153 PREPROCESSING (v2.3.0)")
     print("=" * 70)
 
     label_map = load_labels(config.CSV_PATH)
@@ -1463,12 +1506,14 @@ def save_results(config, X, y, subject_ids, cv_results, metadata, cv_name, n_fol
     qc = metadata.get("qc_analysis", {})
 
     summary = {
-        "version": "2.2.8",
+        "version": "2.3.0",
         "timestamp": timestamp,
         "dataset": {
             "name": "ASZED-153",
-            "doi": "10.5281/zenodo.14178398",
-            "description": "African Schizophrenia EEG Dataset"
+            "data_doi": "10.5281/zenodo.14178398",
+            "paper_doi": "10.1016/j.dib.2025.111934",
+            "paper_ref": "Mosaku et al. (2025) Data in Brief 62:111934",
+            "description": "African Schizophrenia EEG Dataset - Indigenous African populations"
         },
         "metadata": {
             "n_recordings": metadata["n_recordings"],
@@ -1544,7 +1589,7 @@ def save_results(config, X, y, subject_ids, cv_results, metadata, cv_name, n_fol
 
 def main():
     global N_JOBS, THREADPOOL_LIMIT
-    parser = argparse.ArgumentParser(description="ASZED EEG Analysis Pipeline v2.2.8 (FINAL)")
+    parser = argparse.ArgumentParser(description="ASZED EEG Analysis Pipeline v2.3.0")
     parser.add_argument("--data-path", default=".", help="Data directory")
     parser.add_argument("--output-path", default=None, help="Output directory")
     parser.add_argument("--max-files", type=int, default=None, help="Limit files processed")
@@ -1572,8 +1617,10 @@ def main():
     np.random.seed(args.seed)
 
     print("=" * 70)
-    print("ASZED EEG Classification Pipeline v2.2.8 (FINAL)")
-    print("Dataset: African Schizophrenia EEG Dataset (DOI: 10.5281/zenodo.14178398)")
+    print("ASZED EEG Classification Pipeline v2.3.0")
+    print("Dataset: African Schizophrenia EEG Dataset")
+    print("  Data DOI: 10.5281/zenodo.14178398")
+    print("  Paper DOI: 10.1016/j.dib.2025.111934")
     print("=" * 70)
     print(f"\nDate: {datetime.now():%Y-%m-%d %H:%M:%S}")
     print(f"Workers: {N_JOBS} (preprocessing only; CV is single-threaded)")
