@@ -1,0 +1,59 @@
+{
+  "version": "1.0.0",
+  "training_date": "2024-12-15",
+  "dataset": {
+    "name": "ASZED-153",
+    "source": "Data in Brief (DOI: 10.1016/j.dib.2025.111934)",
+    "participants": {
+      "total": 153,
+      "schizophrenia": 77,
+      "healthy_controls": 76
+    },
+    "channels": 16,
+    "channel_layout": "10-20 system",
+    "sampling_rate_hz": 250
+  },
+  "model": {
+    "algorithm": "RandomForestClassifier",
+    "feature_count": 264,
+    "feature_types": [
+      "spectral_power (80 features)",
+      "erp_components (20 features)",
+      "coherence (30 features)",
+      "phase_lag_index (6 features)",
+      "statistical (96 features)",
+      "sample_entropy (16 features)",
+      "fractal_dimension (16 features)"
+    ],
+    "hyperparameters": {
+      "n_estimators": 100,
+      "max_depth": null,
+      "min_samples_split": 2,
+      "min_samples_leaf": 1,
+      "random_state": 42
+    }
+  },
+  "performance": {
+    "training_accuracy": 0.9375,
+    "production_accuracy": 0.837,
+    "evaluation_method": "subject-level cross-validation",
+    "notes": "Production model retrained on ASZED-153 with correct channel montage"
+  },
+  "validation_status": {
+    "internal_validation": "pending",
+    "external_validation": "pending",
+    "hardware_validation": "pending",
+    "prospective_pilot": "pending"
+  },
+  "clinical_notes": {
+    "intended_use": "Screening tool for schizophrenia risk assessment",
+    "limitations": [
+      "Single dataset (ASZED-153, Nigeria population)",
+      "Binary classification only (schizophrenia vs. healthy control)",
+      "Medication effects not accounted for",
+      "No longitudinal data",
+      "Hardware platform unvalidated"
+    ],
+    "disclaimer": "This is a screening tool only. Results should be interpreted by a qualified healthcare professional."
+  }
+}

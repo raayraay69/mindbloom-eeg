@@ -60,15 +60,15 @@
 % ABSTRACT
 % ============================================================================
 \begin{abstract}
-Machine-learning pipelines for schizophrenia screening demand rigorous validation, yet many published studies suffer from \textit{identity leakage}—where recordings from the same individual contaminate both training and testing sets, artificially inflating reported accuracies. We present a methodologically rigorous EEG classification framework evaluated on the African Schizophrenia EEG Dataset (ASZED-153), comprising 153 participants (76 clinically characterized patients, 77 matched controls) recruited in south-western Nigeria.
+Machine-learning pipelines for schizophrenia screening demand rigorous validation, yet many published studies suffer from \textit{identity leakage}, where recordings from the same individual contaminate both training and testing sets, artificially inflating reported accuracies. We present a methodologically rigorous EEG classification framework evaluated on the African Schizophrenia EEG Dataset (ASZED-153), comprising 153 participants (76 clinically characterized patients, 77 matched controls) recruited in south-western Nigeria.
 
 Strict subject-level cross-validation ensured no identity leakage between training and testing partitions. Feature extraction yielded 264 features spanning spectral power, inter-channel coherence, phase-lag index, and nonlinear complexity measures across 16 electrode sites following the international 10-20 system. Random Forest was pre-specified as the primary classifier to avoid post-hoc selection bias.
 
 Our analysis explicitly quantifies the inflation caused by naive evaluation schemes: subject-level accuracy was notably lower than recording-level accuracy, demonstrating the ``hidden cost'' of methodological rigor that many studies fail to report. Feature importance analysis revealed frontal channels as top predictors, providing biological rationale consistent with well-documented prefrontal abnormalities in schizophrenia and informing a proof-of-concept low-cost hardware design.
 
-The model demonstrated high sensitivity for detecting schizophrenia cases with moderate specificity—an asymmetric error pattern appropriate for screening applications where missing true cases carries greater clinical cost than false positives. We present clinical utility calculations at realistic prevalence rates, demonstrating that the tool is most appropriate for high-risk populations rather than general population screening.
+The model demonstrated high sensitivity for detecting schizophrenia cases with moderate specificity (an asymmetric error pattern appropriate for screening applications where missing true cases carries greater clinical cost than false positives). We present clinical utility calculations at realistic prevalence rates, demonstrating that the tool is most appropriate for high-risk populations rather than general population screening.
 
-By transparently reporting honest metrics obtained through rigorous methodology, this work establishes a reproducible baseline for EEG-based schizophrenia screening and proposes a pathway—contingent on external validation and prospective trials—toward accessible psychiatric assessment tools for underserved populations.
+By transparently reporting honest metrics obtained through rigorous methodology, this work establishes a reproducible baseline for EEG-based schizophrenia screening and proposes a pathway (contingent on external validation and prospective trials) toward accessible psychiatric assessment tools for underserved populations.
 \end{abstract}
 
 % ============================================================================
@@ -143,7 +143,7 @@ Several clinical variables that may influence EEG patterns were unavailable in t
     \item \textbf{Demographic Matching:} Group-level age, sex, and education distributions were not documented. Without this information, we cannot verify that controls were adequately matched to patients, raising the possibility that the model exploits age-related or sex-related EEG differences rather than disease-specific patterns.
 \end{itemize}
 
-These unmeasured variables represent threats to internal validity. The high sensitivity (93.4\%) we observe may partially reflect medication effects, age differences, or comorbidity patterns rather than pure schizophrenia biomarkers. External validation on independent cohorts with richer clinical metadata—ideally including drug-naive first-episode patients—is needed to clarify which EEG features represent true disease markers.
+These unmeasured variables represent threats to internal validity. The high sensitivity (93.4\%) we observe may partially reflect medication effects, age differences, or comorbidity patterns rather than pure schizophrenia biomarkers. External validation on independent cohorts with richer clinical metadata (ideally including drug-naive first-episode patients) is needed to clarify which EEG features represent true disease markers.
 
 \subsection{Preprocessing Pipeline}
 
@@ -412,7 +412,7 @@ In our analysis, prediction probabilities clustered near 0.5 for many subjects, 
 The 83.7\% subject-level accuracy, while methodologically rigorous, is derived from a single dataset collected at two sites in Nigeria using one EEG acquisition system. Three critical generalizability threats preclude clinical deployment without further validation:
 
 \begin{enumerate}[leftmargin=*,nosep]
-    \item \textbf{Site-Specific Artifact Exploitation:} Machine learning models can inadvertently exploit site-specific patterns—electrical noise signatures, technician protocols, electrode impedance conventions—that masquerade as disease biomarkers. Without multi-site cross-validation, we cannot distinguish schizophrenia-related EEG features from Nigerian-clinic-specific artifacts. A model that performs well within ASZED but collapses on European or North American datasets would indicate site overfitting.
+    \item \textbf{Site-Specific Artifact Exploitation:} Machine learning models can inadvertently exploit site-specific patterns (electrical noise signatures, technician protocols, electrode impedance conventions) that masquerade as disease biomarkers. Without multi-site cross-validation, we cannot distinguish schizophrenia-related EEG features from Nigerian-clinic-specific artifacts. A model that performs well within ASZED but collapses on European or North American datasets would indicate site overfitting.
 
     \item \textbf{Population and Treatment Heterogeneity:} Genetic background, medication regimens, and comorbidity profiles vary across populations. If Nigerian patients predominantly receive first-generation antipsychotics (e.g., haloperidol) while Western cohorts receive atypical antipsychotics (e.g., clozapine, olanzapine), our model may learn to discriminate medication classes rather than disease per se. Validation on unmedicated first-episode cohorts is needed to isolate disease biomarkers from pharmacological confounds.
 
@@ -478,7 +478,7 @@ This work has several limitations:
 
 The trained Random Forest model (serialized as a \texttt{.pkl} file) enables deployment via web-based applications for real-world screening scenarios. A critical consideration for deployment is the testing strategy: how should incoming EEG recordings be processed to generate predictions?
 
-The ASZED dataset structure—with multiple sessions and paradigms per subject—motivates two distinct testing approaches, each with different trade-offs for clinical deployment.
+The ASZED dataset structure, with multiple sessions and paradigms per subject, motivates two distinct testing approaches, each with different trade-offs for clinical deployment.
 
 \paragraph{Strategy 1: Individual Phase/Session Testing.}
 The most straightforward approach treats each EEG recording (phase or session) as an independent sample:
@@ -512,7 +512,7 @@ For initial web application deployment, we recommend a hybrid approach:
 Several technical and methodological considerations are essential for responsible web deployment:
 
 \begin{itemize}[leftmargin=*,nosep]
-    \item \textbf{Subject-Level Cross-Validation Integrity:} During model validation on the web platform, ensure train/test splits remain at the subject level. If multiple sessions from the same subject are uploaded for testing, all sessions must be evaluated together—never split across training/testing phases—to prevent identity leakage artifacts.
+    \item \textbf{Subject-Level Cross-Validation Integrity:} During model validation on the web platform, ensure train/test splits remain at the subject level. If multiple sessions from the same subject are uploaded for testing, all sessions must be evaluated together (never split across training/testing phases) to prevent identity leakage artifacts.
 
     \item \textbf{Domain Shift Monitoring:} EEG recordings uploaded to the web application may come from different hardware, populations, or recording conditions than the ASZED training data. Implement logging and anomaly detection to identify inputs that fall outside the training distribution, flagging predictions that may be unreliable due to domain mismatch.
 
