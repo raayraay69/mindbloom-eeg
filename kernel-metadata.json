@@ -1,0 +1,13 @@
+{
+  "id": "milkandcoding/aszed-training-kaggle",
+  "title": "ASZED Training Kaggle",
+  "code_file": "ASZED_Training_Kaggle.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": false,
+  "enable_gpu": false,
+  "enable_internet": true,
+  "keywords": ["eeg", "schizophrenia", "classification", "random forest"],
+  "dataset_sources": [],
+  "kernel_sources": []
+}
