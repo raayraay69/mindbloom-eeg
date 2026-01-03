@@ -462,7 +462,70 @@ This work has several limitations:
 \end{enumerate}
 
 % ============================================================================
-% 6. CONCLUSION
+% 6. FUTURE DIRECTIONS
+% ============================================================================
+\section{Future Directions}
+
+\subsection{Web Application Deployment and Model Testing}
+
+The trained Random Forest model (serialized as a \texttt{.pkl} file) enables deployment via web-based applications for real-world screening scenarios. A critical consideration for deployment is the testing strategy: how should incoming EEG recordings be processed to generate predictions?
+
+The ASZED dataset structure—with multiple sessions and paradigms per subject—motivates two distinct testing approaches, each with different trade-offs for clinical deployment.
+
+\paragraph{Strategy 1: Individual Phase/Session Testing.}
+The most straightforward approach treats each EEG recording (phase or session) as an independent sample:
+
+\begin{itemize}[leftmargin=*,nosep]
+    \item \textbf{Advantages:} Increased data samples (individual phases can be processed independently), realistic clinical scenario (practitioners typically have a single recording from a patient), faster inference time, and ability to evaluate which paradigms (resting-state, cognitive tasks, MMN, ASSR) have highest discriminative power.
+    \item \textbf{Implementation:} Load the trained model, extract 264 features from the uploaded EEG file, and generate a prediction with confidence score. This mirrors the current web application architecture.
+    \item \textbf{Limitation:} Single-recording predictions may be more susceptible to noise and artifacts, potentially increasing false positive/negative rates compared to multi-recording ensemble approaches.
+\end{itemize}
+
+\paragraph{Strategy 2: Multi-Session Ensemble Testing.}
+For scenarios where multiple recordings are available from the same subject, an ensemble approach can improve diagnostic reliability:
+
+\begin{itemize}[leftmargin=*,nosep]
+    \item \textbf{Advantages:} Subject-level diagnosis aggregating multiple recordings, increased robustness by averaging out recording-specific noise, and higher confidence through multiple independent predictions.
+    \item \textbf{Implementation:} Process all available recordings from a subject, generate individual predictions, and aggregate via majority voting or probability averaging. Final classification determined by aggregated confidence.
+    \item \textbf{Limitation:} Requires multiple recordings (may not be available in typical clinical screening), increased processing time, and need for session management in the web interface.
+\end{itemize}
+
+\paragraph{Recommended Deployment Strategy.}
+For initial web application deployment, we recommend a hybrid approach:
+
+\begin{enumerate}[leftmargin=*,nosep]
+    \item \textbf{Primary Interface:} Support single-recording upload with individual phase prediction (Strategy 1), providing immediate screening results with appropriate uncertainty communication.
+    \item \textbf{Extended Interface:} Allow optional multi-recording upload for users who have multiple EEG sessions, with automatic ensemble aggregation (Strategy 2) and improved confidence estimates.
+    \item \textbf{Paradigm-Specific Guidance:} Given that different EEG paradigms (resting-state vs. cognitive tasks) may have different discriminative power, the application should log which paradigm types yield highest classification confidence across users, informing future model refinement.
+\end{enumerate}
+
+\subsection{Critical Deployment Considerations}
+
+Several technical and methodological considerations are essential for responsible web deployment:
+
+\begin{itemize}[leftmargin=*,nosep]
+    \item \textbf{Subject-Level Cross-Validation Integrity:} During model validation on the web platform, ensure train/test splits remain at the subject level. If multiple sessions from the same subject are uploaded for testing, all sessions must be evaluated together—never split across training/testing phases—to prevent identity leakage artifacts.
+
+    \item \textbf{Domain Shift Monitoring:} EEG recordings uploaded to the web application may come from different hardware, populations, or recording conditions than the ASZED training data. Implement logging and anomaly detection to identify inputs that fall outside the training distribution, flagging predictions that may be unreliable due to domain mismatch.
+
+    \item \textbf{Confidence Thresholding:} Predictions with probability scores near 0.5 (e.g., 0.4--0.6) should be flagged as ``uncertain'' and communicated appropriately to users. Binary classification without uncertainty quantification provides false confidence unsuitable for clinical screening.
+
+    \item \textbf{Model Versioning:} The serialized \texttt{.pkl} model file should include version metadata, training date, and dataset provenance. As the model is updated with additional training data or refined feature extraction, version tracking ensures reproducibility and enables performance monitoring across deployments.
+\end{itemize}
+
+\subsection{Validation Roadmap}
+
+Before clinical deployment, the following validation milestones should be completed:
+
+\begin{enumerate}[leftmargin=*,nosep]
+    \item \textbf{Internal Validation:} Test the web application with held-out ASZED recordings to confirm the \texttt{.pkl} model reproduces expected classification metrics.
+    \item \textbf{Hardware Validation:} Evaluate model performance on EEG recordings acquired using the low-cost prototype hardware, quantifying the domain shift between research-grade and affordable acquisition systems.
+    \item \textbf{External Validation:} Test on at least one geographically and demographically independent EEG schizophrenia dataset to assess cross-population generalizability.
+    \item \textbf{Prospective Pilot:} Conduct a small-scale prospective study comparing web application predictions against clinical diagnoses in a real-world screening setting.
+\end{enumerate}
+
+% ============================================================================
+% 7. CONCLUSION
 % ============================================================================
 \section{Conclusion}
 
