@@ -38,7 +38,7 @@ Tasks:
 ---
 
 ### Phase 2: Hardware Validation (PARALLEL-SAFE with Phase 1)
-**Objective**: Validate $50 prototype signal quality
+**Objective**: Validate low-cost prototype signal quality
 **Success Criterion**: SNR acceptable; real-time inference <50ms
 
 Tasks:

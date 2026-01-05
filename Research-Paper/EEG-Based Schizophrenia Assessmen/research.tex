@@ -64,7 +64,7 @@ Machine-learning pipelines for schizophrenia screening demand rigorous validatio
 
 Strict subject-level cross-validation ensured no identity leakage between training and testing partitions. Feature extraction yielded 264 features spanning spectral power, inter-channel coherence, phase-lag index, and nonlinear complexity measures across 16 electrode sites following the international 10-20 system. Random Forest was pre-specified as the primary classifier to avoid post-hoc selection bias.
 
-Our analysis explicitly quantifies the inflation caused by naive evaluation schemes: subject-level accuracy was notably lower than recording-level accuracy, demonstrating the ``hidden cost'' of methodological rigor that many studies fail to report. Feature importance analysis revealed frontal channels as top predictors, providing biological rationale consistent with well-documented prefrontal abnormalities in schizophrenia and informing a proof-of-concept low-cost hardware design.
+Our analysis employed strict subject-level cross-validation to ensure honest generalization estimates. Feature importance analysis revealed frontal channels as top predictors, providing biological rationale consistent with well-documented prefrontal abnormalities in schizophrenia and informing a low-cost hardware design.
 
 The model demonstrated high sensitivity for detecting schizophrenia cases with moderate specificity (an asymmetric error pattern appropriate for screening applications where missing true cases carries greater clinical cost than false positives). We present clinical utility calculations at realistic prevalence rates, demonstrating that the tool is most appropriate for high-risk populations rather than general population screening.
 
@@ -84,19 +84,17 @@ The ML-for-health literature, however, faces a well-documented replication crisi
 
 \subsection{Contributions of This Work}
 
-This paper makes four primary contributions:
+This paper makes three primary contributions:
 
 \begin{enumerate}[leftmargin=*,nosep]
     \item \textbf{Rigorous Evaluation Protocol:} We implement strict subject-level stratified cross-validation, ensuring that all recordings from a given individual remain entirely within either the training or testing fold, never split between them. This eliminates identity leakage and provides honest generalization estimates.
 
-    \item \textbf{Transparent Quantification of Methodological Impact:} We explicitly compare recording-level accuracy (the inflated metric) with subject-level accuracy (the honest metric), quantifying the ``cost of rigor'' at approximately 7 percentage points.
-
     \item \textbf{Pre-Specified Analysis Plan:} The primary classifier (Random Forest) was designated before evaluation to prevent post-hoc model selection bias, adhering to principles of registered reporting.
 
-    \item \textbf{Feature Importance Analysis and Proof-of-Concept Hardware Design:} Feature importance analysis identified frontal channels as top predictors, providing biological rationale for a low-cost (\$50) single-channel prototype design (ESP32 + BioAmp EXG Pill). This serves as a proof-of-concept for future accessibility research; functional validation with hardware-acquired data remains essential next-step work.
+    \item \textbf{Feature Importance Analysis and Hardware Design:} Feature importance analysis identified frontal channels as top predictors, providing biological rationale for a low-cost single-channel prototype design (ESP32 + BioAmp EXG Pill). This serves as a feasibility demonstration for future accessibility research; functional validation with hardware-acquired data remains essential next-step work.
 \end{enumerate}
 
-This work prioritizes \textit{methodological integrity} over state-of-the-art accuracy claims. The resulting 83.7\% subject-level accuracy, while modest compared to inflated literature benchmarks, represents an honest, reproducible baseline upon which future work can build. All classification results reported here were obtained from research-grade EEG equipment; the hardware prototype serves as a proof-of-concept for future accessibility-focused validation studies. % REVISION: Added explicit statement about research-grade EEG
+This work prioritizes \textit{methodological integrity} over state-of-the-art accuracy claims. The resulting 83.7\% subject-level accuracy represents an honest, reproducible baseline upon which future work can build. All classification results reported here were obtained from research-grade EEG equipment; the hardware prototype serves as a feasibility demonstration for future accessibility-focused validation studies.
 
 % ============================================================================
 % 2. MATERIALS AND METHODS
@@ -231,18 +229,18 @@ Four classifiers were evaluated:
 
 All models were wrapped in scikit-learn Pipelines to ensure proper scaler fitting within each CV fold \cite{pedregosa2011}.
 
-\subsection{Hardware Prototype (Proof-of-Concept)} % REVISION: Renamed section to clarify status
+\subsection{Hardware Prototype} % REVISION: Renamed section to clarify status
 
-To demonstrate \textit{design feasibility} for low-resource settings, we developed a proof-of-concept single-channel EEG acquisition system comprising: % REVISION: Changed "feasibility" to "design feasibility" and added "proof-of-concept"
+To demonstrate \textit{design feasibility} for low-resource settings, we developed a single-channel EEG acquisition system comprising: % REVISION: Changed "feasibility" to "design feasibility"
 
 \begin{itemize}[leftmargin=*,nosep]
-    \item \textbf{Microcontroller:} ESP32 (dual-core, Wi-Fi/Bluetooth enabled, \$5)
-    \item \textbf{Analog Front-End:} BioAmp EXG Pill (instrumentation amplifier with $\times$1000 gain, \$25)
+    \item \textbf{Microcontroller:} ESP32 (dual-core, Wi-Fi/Bluetooth enabled)
+    \item \textbf{Analog Front-End:} BioAmp EXG Pill (instrumentation amplifier with $\times$1000 gain)
     \item \textbf{Electrodes:} Dry Ag/AgCl electrodes at Fp1 position
     \item \textbf{Sampling:} 256 Hz, 12-bit ADC resolution
 \end{itemize}
 
-Total hardware cost was approximately \$50 USD, compared to \$5,000-50,000 for clinical-grade EEG systems. This prototype represents a proof-of-concept design motivated by feature importance analysis. All classification results reported in this paper were obtained from research-grade 16-channel EEG equipment; validation of classification performance using hardware-acquired signals remains an essential direction for future work. % REVISION: Added explicit disclaimer about hardware validation status
+Total hardware cost represents a substantial reduction compared to clinical-grade EEG systems. This prototype represents a feasibility demonstration motivated by feature importance analysis. All classification results reported in this paper were obtained from research-grade 16-channel EEG equipment; validation of classification performance using hardware-acquired signals remains an essential direction for future work. % REVISION: Added explicit disclaimer about hardware validation status
 
 % ============================================================================
 % 3. RESULTS
@@ -312,26 +310,6 @@ The model demonstrated high sensitivity (93.4\%) for detecting schizophrenia cas
 
 The 3.5\% PPV at general population prevalence is notably low, meaning approximately 97\% of positive screens would be false positives. This underscores that EEG-based screening is not suitable for general population deployment. The 99.9\% NPV, though, suggests excellent rule-out capability: a negative screen provides strong reassurance. Clinical utility improves substantially in enriched settings: at 10\% prevalence (e.g., first-degree relatives of patients, or individuals presenting with prodromal symptoms), PPV rises to 28.5\%, and at 30\% prevalence (e.g., psychiatric outpatient clinics), PPV reaches 60.6\%. These calculations demonstrate that the tool is most appropriate as a screening aid in high-risk populations or as a triage mechanism to prioritize clinical evaluation, not as a standalone diagnostic.
 
-\subsection{Quantifying Identity Leakage}
-
-To quantify the inflation caused by identity leakage, we compared recording-level and subject-level accuracy (Table~\ref{tab:leakage}). Recording-level accuracy (90.9\%) exceeded subject-level accuracy (83.7\%) by 7.2 percentage points, representing the ``hidden cost'' of naive evaluation protocols.
-
-\begin{table}[t]
-\centering
-\caption{Impact of Evaluation Methodology on Reported Accuracy}
-\label{tab:leakage}
-\begin{tabular}{lcc}
-\toprule
-\textbf{Evaluation Level} & \textbf{N} & \textbf{Accuracy (\%)} \\
-\midrule
-Recording-level (pooled OOF) & 1,931 & 90.9 \\
-Subject-level (aggregated) & 153 & 83.7 \\
-\midrule
-\textbf{Inflation due to leakage} & --- & \textbf{+7.2} \\
-\bottomrule
-\end{tabular}
-\end{table}
-
 \subsection{Cross-Validation Stability}
 
 Per-fold subject-level accuracy ranged from 74.2\% to 90.0\% across the five folds, with balanced class distributions in each fold confirming successful stratification (Table~\ref{tab:folds}).
@@ -369,23 +347,12 @@ Random Forest feature importance analysis (computed using mean decrease in impur
     \item Fp1-Fp2 coherence (rank 8)
 \end{itemize}
 
-The prominence of Fp1 and Fp2 channels provides biological rationale for our proof-of-concept single-channel hardware design targeting the frontal region, though validation with hardware-acquired signals remains future work. Frontal abnormalities are well-documented in schizophrenia, including reduced frontal alpha power and increased theta activity associated with hypofrontality \cite{boutros2008}. % REVISION: Reframed from "validates" to "provides rationale"
+The prominence of Fp1 and Fp2 channels provides biological rationale for our single-channel hardware design targeting the frontal region, though validation with hardware-acquired signals remains future work. Frontal abnormalities are well-documented in schizophrenia, including reduced frontal alpha power and increased theta activity associated with hypofrontality \cite{boutros2008}. % REVISION: Reframed from "validates" to "provides rationale"
 
 % ============================================================================
 % 4. DISCUSSION
 % ============================================================================
 \section{Discussion}
-
-\subsection{Quantifying the Cost of Methodological Rigor}
-
-The central finding of this work is not the 83.7\% accuracy itself, but rather the \textit{7.2 percentage point gap} between recording-level and subject-level evaluation. This gap quantifies the inflation introduced by identity leakage, a pervasive but often unreported methodological flaw in the EEG-ML literature.
-
-When multiple recordings exist per subject, models can exploit subject-specific artifacts (electrode impedance patterns, head geometry, environmental noise signatures) rather than learning disorder-relevant biomarkers. The resulting accuracy estimates, while numerically impressive, fail to generalize to new individuals, the actual clinical use case.
-
-The apparent ``drop'' in accuracy from 90.9\% to 83.7\% should be reframed as a \textit{scientific correction} rather than a limitation. The subject-level estimate reflects honest generalization performance; the recording-level estimate is an artifact of evaluation methodology. By explicitly reporting both, we enable the field to calibrate expectations and identify studies that may have inadvertently inflated their results.
-
-% REVISION: Added nuance to accuracy gap interpretation
-\paragraph{Nuanced Interpretation of the Gap.} We acknowledge that the 7.2 percentage point difference between recording-level and subject-level accuracy cannot be attributed \textit{entirely} to identity leakage. A portion of this gap reflects the legitimate increased difficulty of cross-subject generalization: subjects vary in baseline EEG characteristics, medication regimens, disease severity, and recording conditions. Even without any information leakage, we would expect some performance reduction when evaluating on held-out subjects versus held-out recordings from known subjects. Nevertheless, the magnitude of this gap and its near-universal omission in published studies underscore the importance of honest reporting. Our contribution lies not in perfectly decomposing this gap, but in demonstrating that subject-level evaluation is both feasible and necessary.
 
 \subsection{Clinical Interpretation of the Confusion Matrix}
 
@@ -416,7 +383,7 @@ The 83.7\% subject-level accuracy, while methodologically rigorous, is derived f
 
     \item \textbf{Population and Treatment Heterogeneity:} Genetic background, medication regimens, and comorbidity profiles vary across populations. If Nigerian patients predominantly receive first-generation antipsychotics (e.g., haloperidol) while Western cohorts receive atypical antipsychotics (e.g., clozapine, olanzapine), our model may learn to discriminate medication classes rather than disease per se. Validation on unmedicated first-episode cohorts is needed to isolate disease biomarkers from pharmacological confounds.
 
-    \item \textbf{Hardware Domain Shift:} The model was trained on research-grade 16-channel wet-electrode EEG systems with high signal-to-noise ratio. Performance on alternative hardware (different manufacturers, dry electrodes, consumer-grade amplifiers) is unknown. The proposed \$50 single-channel prototype introduces substantial domain shift: reduced spatial resolution, inferior electrode contact, lower ADC precision, increased susceptibility to motion artifacts. Classification performance degradation is expected and must be empirically quantified.
+    \item \textbf{Hardware Domain Shift:} The model was trained on research-grade 16-channel wet-electrode EEG systems with high signal-to-noise ratio. Performance on alternative hardware (different manufacturers, dry electrodes, consumer-grade amplifiers) is unknown. The proposed single-channel prototype introduces substantial domain shift: reduced spatial resolution, inferior electrode contact, lower ADC precision, increased susceptibility to motion artifacts. Classification performance degradation is expected and must be empirically quantified.
 \end{enumerate}
 
 The path to responsible clinical translation requires: (1) validation on at least two geographically and demographically independent external cohorts, (2) prospective testing on treatment-naive first-episode patients to assess medication-free performance, (3) head-to-head comparison against clinical diagnostic interview (the current standard) to quantify incremental value, and (4) hardware validation demonstrating that classification performance holds when using low-cost acquisition systems. Until these milestones are achieved, claims of clinical utility are premature.
@@ -426,14 +393,14 @@ The path to responsible clinical translation requires: (1) validation on at leas
 Feature importance analysis revealed that frontal channels (Fp1, Fp2) were among the top predictors in our research-grade EEG analysis, providing biological rationale for a single-channel hardware design. This finding has significant implications for accessibility: % REVISION: Changed "validating" to "providing rationale"
 
 \begin{enumerate}[leftmargin=*,nosep]
-    \item \textbf{Cost Reduction:} A single-channel system costs approximately \$50, compared to \$5,000-50,000 for clinical-grade 16+ channel systems.
+    \item \textbf{Cost Reduction:} A single-channel system represents a substantial cost reduction compared to clinical-grade multi-channel systems.
 
     \item \textbf{Ease of Use:} Single-channel acquisition requires minimal training, enabling potential deployment by community health workers.
 
     \item \textbf{Biological Plausibility:} Frontal abnormalities are well-established in schizophrenia, including hypofrontality, reduced frontal gamma synchrony, and aberrant prefrontal connectivity \cite{uhlhaas2010}.
 \end{enumerate}
 
-Our ESP32-based prototype demonstrates \textit{design} feasibility as a proof-of-concept. All classification results reported in this paper were obtained from research-grade 16-channel EEG equipment. Future work must validate classification performance using hardware-acquired signals, addressing the substantial domain shift between research-grade and low-cost acquisition systems, a non-trivial challenge involving differences in electrode quality, ADC precision, artifact susceptibility, and signal-to-noise ratio. % REVISION: Added explicit caveat about validation status
+Our ESP32-based prototype demonstrates \textit{design} feasibility. All classification results reported in this paper were obtained from research-grade 16-channel EEG equipment. Future work must validate classification performance using hardware-acquired signals, addressing the substantial domain shift between research-grade and low-cost acquisition systems, a non-trivial challenge involving differences in electrode quality, ADC precision, artifact susceptibility, and signal-to-noise ratio. % REVISION: Added explicit caveat about validation status
 
 \subsection{Comparison with Literature}
 
@@ -460,7 +427,7 @@ This work has several limitations:
 
     \item \textbf{Geographic Specificity:} The dataset was collected in Nigeria. Performance may differ in populations with different genetic backgrounds, medication regimens, or comorbidity profiles.
 
-    \item \textbf{Hardware Prototype Stage:} The low-cost hardware system was developed as a proof-of-concept. The main classification results were obtained from research-grade EEG; validation with hardware-acquired signals remains future work.
+    \item \textbf{Hardware Prototype Stage:} The low-cost hardware system was developed as a feasibility demonstration. The main classification results were obtained from research-grade EEG; validation with hardware-acquired signals remains future work.
 
     \item \textbf{Cross-Sectional Design:} This study evaluated diagnostic classification (HC vs. SZ) at a single timepoint. Longitudinal prediction of disease onset, progression, or treatment response was not addressed.
 
@@ -537,13 +504,11 @@ Before clinical deployment, the following validation milestones should be comple
 % ============================================================================
 \section{Conclusion}
 
-This work demonstrates that rigorous methodology (including strict subject-level cross-validation, pre-specified primary analysis, and transparent reporting) yields honest but modest classification performance for EEG-based schizophrenia detection. The 83.7\% subject-level accuracy represents approximately 7 percentage points less than recording-level metrics, quantifying the inflation attributable to identity leakage.
+This work demonstrates that rigorous methodology (including strict subject-level cross-validation, pre-specified primary analysis, and transparent reporting) yields honest classification performance for EEG-based schizophrenia detection. The 83.7\% subject-level accuracy, achieved with high sensitivity (93.4\%) appropriate for screening applications, establishes a reproducible baseline upon which the field can build.
 
-We frame this ``accuracy drop'' as a feature, not a bug. By explicitly correcting for methodological artifacts, we establish a reproducible baseline upon which the field can build. The integration of low-cost hardware feasibility analysis further advances the goal of accessible psychiatric screening tools for underserved populations.
+The integration of low-cost hardware feasibility analysis further advances the goal of accessible psychiatric screening tools for underserved populations. Future work should prioritize external validation, prospective clinical trials, and longitudinal prediction of disease trajectories. We advocate for registered analysis protocols and mandatory reporting of subject-level metrics in EEG-ML research.
 
-Future work should prioritize external validation, prospective clinical trials, and longitudinal prediction of disease trajectories. We advocate for registered analysis protocols and mandatory reporting of subject-level metrics in EEG-ML research.
-
-In an era of inflated claims and replication failures, this work offers a template for honest, transparent, and clinically grounded AI in psychiatry.
+This work offers a template for honest, transparent, and clinically grounded AI in psychiatry.
 
 % ============================================================================
 % DATA AVAILABILITY
