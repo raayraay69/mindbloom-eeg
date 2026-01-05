@@ -1,7 +1,7 @@
 # Phase 2 Agent: Hardware Validation
 
 ## MISSION
-Validate the $50 EEG prototype (ESP32 + BioAmp EXG Pill) for clinical screening use.
+Validate the low-cost EEG prototype (ESP32 + BioAmp EXG Pill) for clinical screening use.
 
 ## COMPLETION SIGNAL
 When all tasks complete, output:
@@ -26,13 +26,13 @@ Contents:
 - Safety precautions (electrical isolation, skin preparation)
 
 Target BOM:
-| Component | Est. Cost |
-|-----------|-----------|
-| ESP32 DevKit | $8 |
-| BioAmp EXG Pill | $25 |
-| Dry electrodes (3) | $12 |
-| Cables/connectors | $5 |
-| **Total** | **$50** |
+| Component | Notes |
+|-----------|-------|
+| ESP32 DevKit | Dual-core microcontroller with Wi-Fi/Bluetooth |
+| BioAmp EXG Pill | Instrumentation amplifier with high gain |
+| Dry electrodes (3) | Ag/AgCl dry electrodes for Fp1 position |
+| Cables/connectors | Standard connection hardware |
+| **Total** | **Low-cost configuration** |
 
 ### Task 2.2: Signal Quality Protocol
 Create comparison protocol against OpenBCI Cyton (research-grade reference):

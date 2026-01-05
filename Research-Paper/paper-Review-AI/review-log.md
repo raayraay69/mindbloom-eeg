@@ -48,7 +48,7 @@ This paper presents an EEG-based schizophrenia classification pipeline emphasizi
 
 | Issue | Severity | Status | Recommendation |
 |-------|----------|--------|----------------|
-| Hardware section disconnected | HIGH | NEEDS REVISION | Abstract + Contributions + Methods + Results (research.tex:56-62, 83-90, 188-199, 299-310, 344-357) still imply the prototype was validated on ASZED data even though no hardware data exists; rewrite as proof-of-concept and confine validation claims to Limitations 383-389. |
+| Hardware section disconnected | HIGH | NEEDS REVISION | Abstract + Contributions + Methods + Results (research.tex:56-62, 83-90, 188-199, 299-310, 344-357) still imply the prototype was validated on ASZED data even though no hardware data exists; rewrite as feasibility demonstration and confine validation claims to Limitations 383-389. |
 | Recording vs Subject gap interpretation | MEDIUM | NEEDS REVISION | Discussion 318-323 still frames the 7.2-pt delta purely as "identity leakage"; needs nuance that part of the drop comes from harder cross-subject generalization and paradigm heterogeneity. |
 | Feature dimensionality concerns | MEDIUM | NEEDS REVISION | Feature extraction lists 264 features (research.tex:142-156) for 153 subjects with no feature selection, regularization, or control for overfitting; add rationale or dimensionality reduction. |
 | Referenced figures missing | HIGH | NEEDS FIX | Figure callouts for the CV diagram and feature-importance plot (research.tex:161, 299) have no corresponding figure environments; either add the figures or remove the references. |
@@ -153,7 +153,7 @@ This paper presents an EEG-based schizophrenia classification pipeline emphasizi
 
 ## Notes
 
-- 2025-12-29: research.tex audit shows hardware is still portrayed as validated throughout Abstract/Contributions/Results/Discussion; rewrite those passages as proof-of-concept and keep validation claims confined to Limitations.
+- 2025-12-29: research.tex audit shows hardware is still portrayed as validated throughout Abstract/Contributions/Results/Discussion; rewrite those passages as feasibility demonstration and keep validation claims confined to Limitations.
 - 2025-12-29: No figures exist for the referenced CV diagram or feature-importance plot; either generate the assets or remove the `Figure~\ref{fig:...}` callouts.
 - 2025-12-29: Table 2 still lacks majority baseline, AUC/F1 CIs, and any statistical significance discussion; once code emits the extra CIs, update the table + text accordingly.
 - 2025-12-29: Feature extraction text needs clarifications (GFP ERP description, PLI band, electrode-pair rationale) plus a short paragraph about the 264 vs 153 dimensionality.

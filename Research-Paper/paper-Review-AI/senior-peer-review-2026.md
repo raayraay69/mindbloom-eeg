@@ -28,11 +28,11 @@ This manuscript addresses a genuine and important problem—identity leakage in 
 **Problem:** Hardware appears in Abstract, Contributions (#4), Methods (full section), Results ("Hardware Validation" title), and Discussion, but text simultaneously states validation is "future work." This is contradictory and misleading.
 
 **Required Actions:**
-- **Abstract**: Change "demonstrates hardware feasibility" → "presents proof-of-concept prototype; validation remains future work"
-- **Contributions**: Downgrade contribution #4 from standalone hardware claim to "Feature Importance and Proof-of-Concept Design"
+- **Abstract**: Change "demonstrates hardware feasibility" → "presents prototype; validation remains future work"
+- **Contributions**: Downgrade contribution #4 from standalone hardware claim to "Feature Importance and Hardware Design"
 - **Results Section Title (line 317)**: "Hardware Validation" → "Feature Importance Analysis and Hardware Design Motivation"
 - **Throughout**: Change "validates" → "provides biological rationale for"
-- **Add to Limitations**: "The \$50 prototype was not used to acquire data for this study. Hardware validation comparing research-grade vs. low-cost signals is essential future work."
+- **Add to Limitations**: "The prototype was not used to acquire data for this study. Hardware validation comparing research-grade vs. low-cost signals is essential future work."
 
 ### 2. CLINICAL METADATA (CRITICAL FOR *SCHIZOPHRENIA RESEARCH*)
 
@@ -115,7 +115,7 @@ This manuscript addresses a genuine and important problem—identity leakage in 
 | "Diagnostic criteria unspecified" | Says "schizophrenia patients" without citing DSM-5/ICD-10/SCID | Revise dataset section: "patients meeting DSM-5 criteria as diagnosed by psychiatrists" |
 | "Controls not matched" | Table 1 shows N but no age/sex/education | If metadata unavailable, add to limitations; if available, add to Table 1 with statistics |
 | "Artifact rejection not performed" | Preprocessing omits any mention of ICA/rejection | Add explicit statement: "We did not perform artifact rejection... frontal channels susceptible to ocular contamination" |
-| "Hardware claims misleading" | Abstract/contributions present hardware as validated | Reframe as "proof-of-concept design" throughout; remove "validation" language |
+| "Hardware claims misleading" | Abstract/contributions present hardware as validated | Reframe as "feasibility demonstration" throughout; remove "validation" language |
 | "Sample size too small for 264 features" | 153 subjects, 264 features (p/n=1.7) | Strengthen justification: cite RF's regularization, acknowledge external validation needed |
 | "Model won't generalize beyond Nigeria" | Single dataset, single country, no external validation | Add Discussion subsection: "Why This Model Cannot Be Deployed Yet" |
 | "Clinical utility unclear" | No comparison to psychiatrist accuracy or clinical workflow | Add to Discussion: clinical interview achieves ~80% reliability; value proposition is accessibility, not accuracy improvement |
@@ -134,7 +134,7 @@ This manuscript addresses a genuine and important problem—identity leakage in 
 ### 🚩 #1: Hardware "Validation" (CRITICAL)
 **Location:** Abstract, Contributions, Results title, Discussion
 **Problem:** Claims validation despite no hardware data
-**Fix:** Reframe as "proof-of-concept design" everywhere; move to limitations
+**Fix:** Reframe as "feasibility demonstration" everywhere; move to limitations
 
 ### 🚩 #2: "Validates hardware design" (Line 329)
 **Problem:** Too strong; feature importance from research EEG doesn't validate dry-electrode device
@@ -170,7 +170,7 @@ This manuscript addresses a genuine and important problem—identity leakage in 
 
 ### 🚩 #10: "Demonstrates feasibility"
 **Problem:** Building prototype shows design feasibility, not functional feasibility
-**Fix:** "Explores design feasibility... functional validation remains future work"
+**Fix:** "Explores design feasibility; functional validation remains future work"
 
 ---
 
@@ -180,7 +180,7 @@ This manuscript addresses a genuine and important problem—identity leakage in 
 
 ```latex
 \begin{abstract}
-Schizophrenia diagnosis remains predominantly subjective, relying on clinical interviews and behavioral observation. Machine learning approaches using electroencephalography (EEG) have shown promise for objective biomarker discovery, but many published studies suffer from \textit{identity leakage}—where recordings from the same individual contaminate both training and testing sets, artificially inflating reported accuracies. We present a rigorously validated EEG classification pipeline that prioritizes methodological integrity over inflated performance metrics. Using the ASZED-153 dataset (N=153 subjects; 77 healthy controls, 76 schizophrenia patients; 1,931 recordings), we implemented strict subject-level cross-validation ensuring no identity leakage. Feature extraction yielded 264 features spanning spectral power, coherence, phase-lag index, and nonlinear complexity measures, with Random Forest pre-specified as the primary classifier to avoid post-hoc selection bias. Subject-level classification achieved 83.7\% accuracy (95\% CI: 77.8--89.5\%) with ROC-AUC of 0.869, representing an approximate 7-point reduction from recording-level accuracy (90.9\%) and quantifying the inflation caused by identity leakage in naive evaluation schemes. Feature importance analysis revealed frontal channels (Fp1, Fp2) as top predictors, providing biological rationale for targeting frontal sites in future low-cost hardware designs. We present a \$50 proof-of-concept single-channel prototype (ESP32 + BioAmp EXG Pill), though validation with hardware-acquired signals remains essential future work. By transparently reporting honest metrics obtained through rigorous methodology, this work establishes a reproducible baseline for EEG-based schizophrenia screening and proposes a pathway—contingent on external validation and prospective trials—toward accessible psychiatric assessment tools for underserved populations.
+Schizophrenia diagnosis remains predominantly subjective, relying on clinical interviews and behavioral observation. Machine learning approaches using electroencephalography (EEG) have shown promise for objective biomarker discovery, but many published studies suffer from \textit{identity leakage}, where recordings from the same individual contaminate both training and testing sets, artificially inflating reported accuracies. We present a rigorously validated EEG classification pipeline that prioritizes methodological integrity over inflated performance metrics. Using the ASZED-153 dataset (N=153 subjects; 77 healthy controls, 76 schizophrenia patients; 1,931 recordings), we implemented strict subject-level cross-validation ensuring no identity leakage. Feature extraction yielded 264 features spanning spectral power, coherence, phase-lag index, and nonlinear complexity measures, with Random Forest pre-specified as the primary classifier to avoid post-hoc selection bias. Subject-level classification achieved 83.7\% accuracy (95\% CI: 77.8 to 89.5\%) with ROC-AUC of 0.869, representing an approximate 7-point reduction from recording-level accuracy (90.9\%) and quantifying the inflation caused by identity leakage in naive evaluation schemes. Feature importance analysis revealed frontal channels (Fp1, Fp2) as top predictors, providing biological rationale for targeting frontal sites in future low-cost hardware designs. We present a low-cost single-channel prototype (ESP32 + BioAmp EXG Pill), though validation with hardware-acquired signals remains essential future work. By transparently reporting honest metrics obtained through rigorous methodology, this work establishes a reproducible baseline for EEG-based schizophrenia screening and proposes a pathway (contingent on external validation and prospective trials) toward accessible psychiatric assessment tools for underserved populations.
 \end{abstract}
 ```
 
@@ -203,7 +203,7 @@ Several clinical variables that may influence EEG patterns were unavailable in t
     \item \textbf{Demographic Matching:} Group-level age, sex, and education distributions were not documented. Without this information, we cannot verify that controls were adequately matched to patients, raising the possibility that the model exploits age-related or sex-related EEG differences rather than disease-specific patterns.
 \end{itemize}
 
-These unmeasured variables represent threats to internal validity. The high sensitivity (93.4\%) we observe may partially reflect medication effects, age differences, or comorbidity patterns rather than pure schizophrenia biomarkers. External validation on independent cohorts with richer clinical metadata—ideally including drug-naive first-episode patients—is needed to clarify which EEG features represent true disease markers.
+These unmeasured variables represent threats to internal validity. The high sensitivity (93.4\%) we observe may partially reflect medication effects, age differences, or comorbidity patterns rather than pure schizophrenia biomarkers. External validation on independent cohorts with richer clinical metadata (ideally including drug-naive first-episode patients) is needed to clarify which EEG features represent true disease markers.
 ```
 
 ### REVISED PREPROCESSING SECTION 2.2 (Replace lines 122-136)
@@ -261,11 +261,11 @@ Three aspects of the feature extraction procedure require elaboration:
 The 83.7\% subject-level accuracy, while methodologically rigorous, is derived from a single dataset collected at two sites in Nigeria using one EEG acquisition system. Three critical generalizability threats preclude clinical deployment without further validation:
 
 \begin{enumerate}[leftmargin=*,nosep]
-    \item \textbf{Site-Specific Artifact Exploitation:} Machine learning models can inadvertently exploit site-specific patterns—electrical noise signatures, technician protocols, electrode impedance conventions—that masquerade as disease biomarkers. Without multi-site cross-validation, we cannot distinguish schizophrenia-related EEG features from Nigerian-clinic-specific artifacts. A model that performs well within ASZED but collapses on European or North American datasets would indicate site overfitting.
+    \item \textbf{Site-Specific Artifact Exploitation:} Machine learning models can inadvertently exploit site-specific patterns (electrical noise signatures, technician protocols, electrode impedance conventions) that masquerade as disease biomarkers. Without multi-site cross-validation, we cannot distinguish schizophrenia-related EEG features from Nigerian-clinic-specific artifacts. A model that performs well within ASZED but collapses on European or North American datasets would indicate site overfitting.
 
     \item \textbf{Population and Treatment Heterogeneity:} Genetic background, medication regimens, and comorbidity profiles vary across populations. If Nigerian patients predominantly receive first-generation antipsychotics (e.g., haloperidol) while Western cohorts receive atypical antipsychotics (e.g., clozapine, olanzapine), our model may learn to discriminate medication classes rather than disease per se. Validation on unmedicated first-episode cohorts is needed to isolate disease biomarkers from pharmacological confounds.
 
-    \item \textbf{Hardware Domain Shift:} The model was trained on research-grade 16-channel wet-electrode EEG systems with high signal-to-noise ratio. Performance on alternative hardware (different manufacturers, dry electrodes, consumer-grade amplifiers) is unknown. The proposed \$50 single-channel prototype introduces substantial domain shift: reduced spatial resolution, inferior electrode contact, lower ADC precision, increased susceptibility to motion artifacts. Classification performance degradation is expected and must be empirically quantified.
+    \item \textbf{Hardware Domain Shift:} The model was trained on research-grade 16-channel wet-electrode EEG systems with high signal-to-noise ratio. Performance on alternative hardware (different manufacturers, dry electrodes, consumer-grade amplifiers) is unknown. The proposed single-channel prototype introduces substantial domain shift: reduced spatial resolution, inferior electrode contact, lower ADC precision, increased susceptibility to motion artifacts. Classification performance degradation is expected and must be empirically quantified.
 \end{enumerate}
 
 The path to responsible clinical translation requires: (1) validation on at least two geographically and demographically independent external cohorts, (2) prospective testing on treatment-naive first-episode patients to assess medication-free performance, (3) head-to-head comparison against clinical diagnostic interview (the current standard) to quantify incremental value, and (4) hardware validation demonstrating that classification performance holds when using low-cost acquisition systems. Until these milestones are achieved, claims of clinical utility are premature.

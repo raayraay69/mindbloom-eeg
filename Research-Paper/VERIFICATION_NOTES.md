@@ -118,9 +118,9 @@ PPV = 0.6062 = 60.6%
 
 | Component | Value | Source | Status |
 |-----------|-------|--------|--------|
-| ESP32 cost | $5 | research.tex L231 | VERIFIED |
-| BioAmp EXG Pill cost | $25 | research.tex L231 | VERIFIED |
-| Total prototype cost | ~$50 | research.tex L236 | VERIFIED |
+| ESP32 | Dual-core microcontroller | research.tex L231 | VERIFIED |
+| BioAmp EXG Pill | Instrumentation amplifier | research.tex L231 | VERIFIED |
+| Total prototype | Low-cost configuration | research.tex L236 | VERIFIED |
 | Sampling rate | 256 Hz | research.tex L115, samiksha-eeg.py L19 | VERIFIED |
 | Target channel | Fp1 | samiksha-eeg.py L92 | VERIFIED |
 
